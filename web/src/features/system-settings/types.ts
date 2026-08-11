@@ -359,6 +359,17 @@ export type OperationsSettings = {
   'perf_metrics_setting.flush_interval': number
   'perf_metrics_setting.bucket_time': 'hour' | 'minute' | '5min'
   'perf_metrics_setting.retention_days': number
+  'asset_setting.type': string
+  'asset_setting.endpoint': string
+  'asset_setting.region': string
+  'asset_setting.bucket': string
+  'asset_setting.access_key': string
+  'asset_setting.secret_key': string
+  'asset_setting.path_prefix': string
+  'asset_setting.custom_domain': string
+  'asset_setting.force_path_style': boolean
+  'asset_setting.volc_access_key': string
+  'asset_setting.volc_secret_key': string
 }
 
 export type SecuritySettings = {

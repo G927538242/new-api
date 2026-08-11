@@ -25,6 +25,7 @@ import { PerformanceSection } from '../maintenance/performance-section'
 import { UpdateCheckerSection } from '../maintenance/update-checker-section'
 import type { OperationsSettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
+import { MaterialLibrarySection } from './material-library-section'
 
 const OPERATIONS_SECTIONS = [
   {
@@ -138,6 +139,31 @@ const OPERATIONS_SECTIONS = [
       <UpdateCheckerSection
         currentVersion={currentVersion}
         startTime={startTime}
+      />
+    ),
+  },
+  {
+    id: 'material-library',
+    titleKey: 'Material Library',
+    build: (settings: OperationsSettings) => (
+      <MaterialLibrarySection
+        defaultValues={{
+          'asset_setting.type': settings['asset_setting.type'],
+          'asset_setting.endpoint': settings['asset_setting.endpoint'],
+          'asset_setting.region': settings['asset_setting.region'],
+          'asset_setting.bucket': settings['asset_setting.bucket'],
+          'asset_setting.access_key': settings['asset_setting.access_key'],
+          'asset_setting.secret_key': settings['asset_setting.secret_key'],
+          'asset_setting.path_prefix': settings['asset_setting.path_prefix'],
+          'asset_setting.custom_domain':
+            settings['asset_setting.custom_domain'],
+          'asset_setting.force_path_style':
+            settings['asset_setting.force_path_style'],
+          'asset_setting.volc_access_key':
+            settings['asset_setting.volc_access_key'],
+          'asset_setting.volc_secret_key':
+            settings['asset_setting.volc_secret_key'],
+        }}
       />
     ),
   },

@@ -20,15 +20,21 @@ import React, { useState } from 'react'
 
 import useDialogState from '@/hooks/use-dialog'
 
-import type { Asset, AssetsDialogType } from '../types'
+import type { Asset, AssetGroup, AssetsDialogType } from '../types'
 
 type AssetsContextType = {
   open: AssetsDialogType | null
   setOpen: (str: AssetsDialogType | null) => void
   currentRow: Asset | null
   setCurrentRow: React.Dispatch<React.SetStateAction<Asset | null>>
+  currentGroupId: number | null
+  setCurrentGroupId: React.Dispatch<React.SetStateAction<number | null>>
+  currentGroup: AssetGroup | null
+  setCurrentGroup: React.Dispatch<React.SetStateAction<AssetGroup | null>>
   refreshTrigger: number
   triggerRefresh: () => void
+  groupsRefreshTrigger: number
+  triggerGroupsRefresh: () => void
 }
 
 const AssetsContext = React.createContext<AssetsContextType | null>(null)
@@ -40,9 +46,14 @@ export function AssetsProvider({
 }) {
   const [open, setOpen] = useDialogState<AssetsDialogType>(null)
   const [currentRow, setCurrentRow] = useState<Asset | null>(null)
+  const [currentGroupId, setCurrentGroupId] = useState<number | null>(null)
+  const [currentGroup, setCurrentGroup] = useState<AssetGroup | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [groupsRefreshTrigger, setGroupsRefreshTrigger] = useState(0)
 
   const triggerRefresh = () => setRefreshTrigger((prev) => prev + 1)
+  const triggerGroupsRefresh = () =>
+    setGroupsRefreshTrigger((prev) => prev + 1)
 
   return (
     <AssetsContext
@@ -51,8 +62,14 @@ export function AssetsProvider({
         setOpen,
         currentRow,
         setCurrentRow,
+        currentGroupId,
+        setCurrentGroupId,
+        currentGroup,
+        setCurrentGroup,
         refreshTrigger,
         triggerRefresh,
+        groupsRefreshTrigger,
+        triggerGroupsRefresh,
       }}
     >
       {children}

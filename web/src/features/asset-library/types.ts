@@ -39,11 +39,41 @@ export const assetSchema = z.object({
   width: z.number(),
   height: z.number(),
   created_time: z.number(), // Unix timestamp
+  group_id: z.number().optional(),
+  upstream_group_id: z.string().optional(),
+  upstream_asset_id: z.string().optional(),
+  status: z.string().optional(), // pending | processing | active | failed | local
 })
 
 export type Asset = z.infer<typeof assetSchema>
 
 export type AssetType = 'image' | 'video' | 'audio'
+
+export type AssetStatus = 'pending' | 'processing' | 'active' | 'failed' | 'local'
+
+// ============================================================================
+// Asset Group Schema & Types
+// ============================================================================
+
+export const assetGroupSchema = z.object({
+  id: z.number(),
+  user_id: z.number(),
+  upstream_group_id: z.string().optional(),
+  name: z.string(),
+  description: z.string().optional(),
+  group_type: z.string().optional(),
+  project_name: z.string().optional(),
+  created_time: z.number(),
+})
+
+export type AssetGroup = z.infer<typeof assetGroupSchema>
+
+export const assetGroupFormSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+})
+
+export type AssetGroupFormValues = z.infer<typeof assetGroupFormSchema>
 
 // ============================================================================
 // API Request/Response Types
@@ -62,6 +92,8 @@ export interface GetAssetsParams {
   model?: string
   user_id?: number
   tenant_id?: number
+  group_id?: number
+  status?: AssetStatus
 }
 
 export interface GetAssetsResponse {
@@ -81,12 +113,32 @@ export interface SearchAssetsParams {
   model?: string
   user_id?: number
   tenant_id?: number
+  group_id?: number
+  status?: AssetStatus
   p?: number
   page_size?: number
+}
+
+// ============================================================================
+// Asset Group API Request/Response Types
+// ============================================================================
+
+export interface GetAssetGroupsParams {
+  keyword?: string
+}
+
+export interface GetAssetGroupsResponse {
+  success: boolean
+  message?: string
+  data?: AssetGroup[]
 }
 
 // ============================================================================
 // Dialog Types
 // ============================================================================
 
-export type AssetsDialogType = 'delete'
+export type AssetsDialogType =
+  | 'delete'
+  | 'create-group'
+  | 'edit-group'
+  | 'delete-group'

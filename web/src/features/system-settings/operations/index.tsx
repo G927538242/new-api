@@ -56,6 +56,17 @@ const defaultOperationsSettings: OperationsSettings = {
   'perf_metrics_setting.flush_interval': 5,
   'perf_metrics_setting.bucket_time': 'hour',
   'perf_metrics_setting.retention_days': 0,
+  'asset_setting.type': 'local',
+  'asset_setting.endpoint': '',
+  'asset_setting.region': '',
+  'asset_setting.bucket': '',
+  'asset_setting.access_key': '',
+  'asset_setting.secret_key': '',
+  'asset_setting.path_prefix': 'assets/',
+  'asset_setting.custom_domain': '',
+  'asset_setting.force_path_style': false,
+  'asset_setting.volc_access_key': '',
+  'asset_setting.volc_secret_key': '',
 }
 
 export function OperationsSettings() {

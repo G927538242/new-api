@@ -19,8 +19,8 @@ For commercial licensing, please contact support@quantumnous.com
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
 import type { ColumnDef, Row } from '@tanstack/react-table'
-import { Copy, Film, Music, Trash2 } from 'lucide-react'
-import { useMemo } from 'react'
+import { Copy, Film, Music, RefreshCw, Trash2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -31,6 +31,14 @@ import {
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -39,16 +47,18 @@ import { useMediaQuery } from '@/hooks'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 import { formatFileSize, formatTimestampToDate } from '@/lib/format'
 
-import { getAssets, searchAssets } from '../api'
+import { getAssetGroups, getAssets, searchAssets, syncAssetStatus } from '../api'
 import {
   ERROR_MESSAGES,
   SUCCESS_MESSAGES,
   getAssetModelConfig,
   getAssetModelOptions,
+  getAssetStatusConfig,
+  getAssetStatusOptions,
   getAssetTypeConfig,
   getAssetTypeOptions,
 } from '../constants'
-import type { Asset, AssetType } from '../types'
+import type { Asset, AssetStatus, AssetType } from '../types'
 import { useAssets } from './assets-provider'
 
 const route = getRouteApi('/_authenticated/asset-library/')
@@ -151,6 +161,39 @@ function useAssetsColumns(): ColumnDef<Asset>[] {
       size: 140,
     },
     {
+      accessorKey: 'status',
+      header: t('状态'),
+      meta: { mobileHidden: true },
+      cell: ({ row }) => {
+        const status = row.original.status
+        if (!status) {
+          return (
+            <span className='text-muted-foreground text-sm'>-</span>
+          )
+        }
+        const config = getAssetStatusConfig(status)
+        if (!config) {
+          return (
+            <span className='text-muted-foreground text-sm'>{status}</span>
+          )
+        }
+        return (
+          <StatusBadge
+            label={t(config.labelKey)}
+            variant={config.variant}
+            copyable={false}
+            className='-ml-1.5'
+          />
+        )
+      },
+      filterFn: (row, _id, value: string[]) => {
+        const status = row.original.status
+        if (!status) return false
+        return value.includes(status)
+      },
+      size: 120,
+    },
+    {
       accessorKey: 'user_name',
       header: t('User'),
       meta: { mobileHidden: true },
@@ -194,8 +237,9 @@ function useAssetsColumns(): ColumnDef<Asset>[] {
 
 function AssetsRowActions<TData>({ row }: { row: Row<TData> }) {
   const { t } = useTranslation()
-  const { setCurrentRow, setOpen } = useAssets()
+  const { setCurrentRow, setOpen, triggerRefresh } = useAssets()
   const asset = row.original as Asset
+  const [isSyncing, setIsSyncing] = useState(false)
 
   const handleCopyUrl = async () => {
     try {
@@ -203,6 +247,23 @@ function AssetsRowActions<TData>({ row }: { row: Row<TData> }) {
       toast.success(t(SUCCESS_MESSAGES.COPY_SUCCESS))
     } catch {
       toast.error(t('Copy failed'))
+    }
+  }
+
+  const handleSyncStatus = async () => {
+    setIsSyncing(true)
+    try {
+      const result = await syncAssetStatus(asset.id)
+      if (result.success) {
+        toast.success(t(SUCCESS_MESSAGES.SYNC_SUCCESS))
+        triggerRefresh()
+      } else {
+        toast.error(result.message || t(ERROR_MESSAGES.SYNC_FAILED))
+      }
+    } catch {
+      toast.error(t(ERROR_MESSAGES.SYNC_FAILED))
+    } finally {
+      setIsSyncing(false)
     }
   }
 
@@ -230,6 +291,25 @@ function AssetsRowActions<TData>({ row }: { row: Row<TData> }) {
             <Button
               variant='ghost'
               size='icon-sm'
+              onClick={handleSyncStatus}
+              disabled={isSyncing}
+              aria-label={t('同步状态')}
+            />
+          }
+        >
+          <RefreshCw
+            className={isSyncing ? 'h-4 w-4 animate-spin' : 'h-4 w-4'}
+          />
+        </TooltipTrigger>
+        <TooltipContent>{t('同步状态')}</TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant='ghost'
+              size='icon-sm'
               onClick={() => {
                 setCurrentRow(asset)
                 setOpen('delete')
@@ -249,8 +329,39 @@ function AssetsRowActions<TData>({ row }: { row: Row<TData> }) {
 export function AssetsTable() {
   const { t } = useTranslation()
   const columns = useAssetsColumns()
-  const { refreshTrigger } = useAssets()
+  const {
+    refreshTrigger,
+    currentGroupId,
+    setCurrentGroupId,
+    setCurrentGroup,
+    groupsRefreshTrigger,
+  } = useAssets()
   const isMobile = useMediaQuery('(max-width: 640px)')
+
+  // Fetch groups for the group filter dropdown
+  const { data: groupsData } = useQuery({
+    queryKey: ['asset-groups', groupsRefreshTrigger],
+    queryFn: async () => {
+      const result = await getAssetGroups()
+      if (!result.success) {
+        return []
+      }
+      return result.data || []
+    },
+  })
+  const groups = groupsData || []
+
+  const handleGroupFilterChange = (value: string | null) => {
+    if (value === null || value === 'all') {
+      setCurrentGroupId(null)
+      setCurrentGroup(null)
+    } else {
+      const id = Number(value)
+      setCurrentGroupId(id)
+      const group = groups.find((g) => g.id === id) || null
+      setCurrentGroup(group)
+    }
+  }
 
   const {
     globalFilter,
@@ -268,6 +379,7 @@ export function AssetsTable() {
     columnFilters: [
       { columnId: 'type', searchKey: 'type', type: 'array' },
       { columnId: 'model', searchKey: 'model', type: 'array' },
+      { columnId: 'status', searchKey: 'status', type: 'array' },
       { columnId: 'user_name', searchKey: 'user', type: 'array' },
     ],
   })
@@ -284,6 +396,12 @@ export function AssetsTable() {
       | undefined) ?? []
   const modelFilterValue = modelFilter[0] ?? ''
 
+  const statusFilter =
+    (columnFilters.find((filter) => filter.id === 'status')?.value as
+      | string[]
+      | undefined) ?? []
+  const statusFilterValue = statusFilter[0] ?? ''
+
   const userFilter =
     (columnFilters.find((filter) => filter.id === 'user_name')?.value as
       | string[]
@@ -298,7 +416,9 @@ export function AssetsTable() {
       globalFilter,
       typeFilterValue,
       modelFilterValue,
+      statusFilterValue,
       userFilterValue,
+      currentGroupId,
       refreshTrigger,
     ],
     queryFn: async () => {
@@ -311,23 +431,32 @@ export function AssetsTable() {
         ? { type: typeFilterValue as AssetType }
         : {}
       const modelParam = modelFilterValue ? { model: modelFilterValue } : {}
+      const statusParam = statusFilterValue
+        ? { status: statusFilterValue as AssetStatus }
+        : {}
       const userParam = userFilterValue
         ? { user_id: Number(userFilterValue) }
         : {}
+      const groupParam =
+        currentGroupId !== null ? { group_id: currentGroupId } : {}
 
       const result = hasFilter
         ? await searchAssets({
             ...params,
             ...typeParam,
             ...modelParam,
+            ...statusParam,
             ...userParam,
+            ...groupParam,
             keyword: globalFilter,
           })
         : await getAssets({
             ...params,
             ...typeParam,
             ...modelParam,
+            ...statusParam,
             ...userParam,
+            ...groupParam,
           })
 
       if (!result.success) {
@@ -372,6 +501,7 @@ export function AssetsTable() {
 
   const assetTypeOptions = useMemo(() => getAssetTypeOptions(t), [t])
   const assetModelOptions = useMemo(() => getAssetModelOptions(t), [t])
+  const assetStatusOptions = useMemo(() => getAssetStatusOptions(t), [t])
 
   return (
     <DataTablePage
@@ -387,6 +517,26 @@ export function AssetsTable() {
       applyHeaderSize
       toolbarProps={{
         searchPlaceholder: t('Filter by name...'),
+        additionalSearch: (
+          <Select
+            value={currentGroupId !== null ? String(currentGroupId) : 'all'}
+            onValueChange={handleGroupFilterChange}
+          >
+            <SelectTrigger size='sm' className='w-[160px]'>
+              <SelectValue placeholder={t('选择分组')} />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              <SelectGroup>
+                <SelectItem value='all'>{t('全部分组')}</SelectItem>
+                {groups.map((group) => (
+                  <SelectItem key={group.id} value={String(group.id)}>
+                    {group.name}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        ),
         filters: [
           {
             columnId: 'type',
@@ -398,6 +548,12 @@ export function AssetsTable() {
             columnId: 'model',
             title: t('Model'),
             options: assetModelOptions,
+            singleSelect: true,
+          },
+          {
+            columnId: 'status',
+            title: t('状态'),
+            options: assetStatusOptions,
             singleSelect: true,
           },
           {

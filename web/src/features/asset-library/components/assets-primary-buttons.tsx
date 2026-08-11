@@ -16,22 +16,69 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Loader2, Upload } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { FolderPlus, Loader2, Pencil, Trash2, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
-import { uploadAsset } from '../api'
+import { getAssetGroups, uploadAsset } from '../api'
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants'
 import { useAssets } from './assets-provider'
 
 export function AssetsPrimaryButtons() {
   const { t } = useTranslation()
-  const { triggerRefresh } = useAssets()
+  const {
+    triggerRefresh,
+    currentGroupId,
+    setCurrentGroupId,
+    currentGroup,
+    setCurrentGroup,
+    setOpen,
+    groupsRefreshTrigger,
+  } = useAssets()
   const inputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
+
+  const { data: groupsData } = useQuery({
+    queryKey: ['asset-groups', groupsRefreshTrigger],
+    queryFn: async () => {
+      const result = await getAssetGroups()
+      if (!result.success) {
+        toast.error(t(ERROR_MESSAGES.LOAD_GROUPS_FAILED))
+        return []
+      }
+      return result.data || []
+    },
+  })
+  const groups = groupsData || []
+
+  const handleGroupChange = (value: string | null) => {
+    if (value === null || value === 'all') {
+      setCurrentGroupId(null)
+      setCurrentGroup(null)
+    } else {
+      const id = Number(value)
+      setCurrentGroupId(id)
+      const group = groups.find((g) => g.id === id) || null
+      setCurrentGroup(group)
+    }
+  }
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return
@@ -39,7 +86,7 @@ export function AssetsPrimaryButtons() {
     setIsUploading(true)
     try {
       const results = await Promise.allSettled(
-        [...files].map((file) => uploadAsset(file))
+        [...files].map((file) => uploadAsset(file, currentGroupId ?? undefined))
       )
       const fulfilled = results.filter(
         (r) => r.status === 'fulfilled' && r.value.success
@@ -63,8 +110,18 @@ export function AssetsPrimaryButtons() {
     }
   }
 
+  const handleEditGroup = () => {
+    if (!currentGroup) return
+    setOpen('edit-group')
+  }
+
+  const handleDeleteGroup = () => {
+    if (!currentGroup) return
+    setOpen('delete-group')
+  }
+
   return (
-    <>
+    <div className='flex items-center gap-2'>
       <input
         ref={inputRef}
         type='file'
@@ -72,6 +129,75 @@ export function AssetsPrimaryButtons() {
         className='hidden'
         onChange={(e) => handleFiles(e.target.files)}
       />
+
+      {/* 新建分组 */}
+      <Button
+        size='sm'
+        variant='outline'
+        onClick={() => setOpen('create-group')}
+      >
+        <FolderPlus className='h-4 w-4' />
+        {t('新建分组')}
+      </Button>
+
+      {/* 分组选择下拉（上传时选择目标分组 + 筛选） */}
+      <Select
+        value={currentGroupId !== null ? String(currentGroupId) : 'all'}
+        onValueChange={handleGroupChange}
+      >
+        <SelectTrigger size='sm' className='w-[160px]'>
+          <SelectValue placeholder={t('选择分组')} />
+        </SelectTrigger>
+        <SelectContent alignItemWithTrigger={false}>
+          <SelectGroup>
+            <SelectItem value='all'>{t('全部分组')}</SelectItem>
+            {groups.map((group) => (
+              <SelectItem key={group.id} value={String(group.id)}>
+                {group.name}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+
+      {/* 编辑 / 删除当前分组 */}
+      {currentGroup && (
+        <>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant='ghost'
+                  size='icon-sm'
+                  onClick={handleEditGroup}
+                  aria-label={t('编辑分组')}
+                />
+              }
+            >
+              <Pencil className='h-4 w-4' />
+            </TooltipTrigger>
+            <TooltipContent>{t('编辑分组')}</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant='ghost'
+                  size='icon-sm'
+                  onClick={handleDeleteGroup}
+                  aria-label={t('删除分组')}
+                />
+              }
+            >
+              <Trash2 className='text-destructive h-4 w-4' />
+            </TooltipTrigger>
+            <TooltipContent>{t('删除分组')}</TooltipContent>
+          </Tooltip>
+        </>
+      )}
+
+      {/* 上传素材 */}
       <Button
         size='sm'
         onClick={() => inputRef.current?.click()}
@@ -84,6 +210,6 @@ export function AssetsPrimaryButtons() {
         )}
         {isUploading ? t('Uploading...') : t('Upload Asset')}
       </Button>
-    </>
+    </div>
   )
 }

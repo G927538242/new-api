@@ -20,7 +20,11 @@ import { api } from '@/lib/api'
 
 import type {
   Asset,
+  AssetGroup,
+  AssetGroupFormValues,
   ApiResponse,
+  GetAssetGroupsParams,
+  GetAssetGroupsResponse,
   GetAssetsParams,
   GetAssetsResponse,
   SearchAssetsParams,
@@ -34,7 +38,16 @@ import type {
 export async function getAssets(
   params: GetAssetsParams = {}
 ): Promise<GetAssetsResponse> {
-  const { p = 1, page_size = 10, type, model, user_id, tenant_id } = params
+  const {
+    p = 1,
+    page_size = 10,
+    type,
+    model,
+    user_id,
+    tenant_id,
+    group_id,
+    status,
+  } = params
   const queryParams = new URLSearchParams()
   queryParams.set('p', String(p))
   queryParams.set('page_size', String(page_size))
@@ -42,6 +55,9 @@ export async function getAssets(
   if (model) queryParams.set('model', model)
   if (user_id) queryParams.set('user_id', String(user_id))
   if (tenant_id) queryParams.set('tenant_id', String(tenant_id))
+  if (group_id !== undefined && group_id !== null)
+    queryParams.set('group_id', String(group_id))
+  if (status) queryParams.set('status', status)
   const res = await api.get(`/api/asset/?${queryParams.toString()}`)
   return res.data
 }
@@ -50,13 +66,26 @@ export async function getAssets(
 export async function searchAssets(
   params: SearchAssetsParams
 ): Promise<GetAssetsResponse> {
-  const { keyword = '', type, model, user_id, tenant_id, p = 1, page_size = 10 } = params
+  const {
+    keyword = '',
+    type,
+    model,
+    user_id,
+    tenant_id,
+    group_id,
+    status,
+    p = 1,
+    page_size = 10,
+  } = params
   const queryParams = new URLSearchParams()
   queryParams.set('keyword', keyword)
   if (type) queryParams.set('type', type)
   if (model) queryParams.set('model', model)
   if (user_id) queryParams.set('user_id', String(user_id))
   if (tenant_id) queryParams.set('tenant_id', String(tenant_id))
+  if (group_id !== undefined && group_id !== null)
+    queryParams.set('group_id', String(group_id))
+  if (status) queryParams.set('status', status)
   queryParams.set('p', String(p))
   queryParams.set('page_size', String(page_size))
   const res = await api.get(`/api/asset/search?${queryParams.toString()}`)
@@ -70,9 +99,15 @@ export async function getAsset(id: number): Promise<ApiResponse<Asset>> {
 }
 
 // Upload an asset (multipart/form-data, field name "file")
-export async function uploadAsset(file: File): Promise<ApiResponse<Asset>> {
+export async function uploadAsset(
+  file: File,
+  groupId?: number
+): Promise<ApiResponse<Asset>> {
   const formData = new FormData()
   formData.append('file', file)
+  if (groupId !== undefined && groupId !== null) {
+    formData.append('group_id', String(groupId))
+  }
   const res = await api.post('/api/asset/', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
@@ -84,5 +119,58 @@ export async function uploadAsset(file: File): Promise<ApiResponse<Asset>> {
 // Delete an asset
 export async function deleteAsset(id: number): Promise<ApiResponse> {
   const res = await api.delete(`/api/asset/${id}/`)
+  return res.data
+}
+
+// Sync asset status (pull latest status from upstream)
+export async function syncAssetStatus(
+  id: number
+): Promise<ApiResponse<Asset>> {
+  const res = await api.post(`/api/asset/${id}/sync`)
+  return res.data
+}
+
+// ============================================================================
+// Asset Group Management
+// ============================================================================
+
+// Get asset groups list (supports keyword search)
+export async function getAssetGroups(
+  params: GetAssetGroupsParams = {}
+): Promise<GetAssetGroupsResponse> {
+  const queryParams = new URLSearchParams()
+  if (params.keyword) queryParams.set('keyword', params.keyword)
+  const res = await api.get(`/api/asset-group/?${queryParams.toString()}`)
+  return res.data
+}
+
+// Get single asset group by ID
+export async function getAssetGroup(
+  id: number
+): Promise<ApiResponse<AssetGroup>> {
+  const res = await api.get(`/api/asset-group/${id}`)
+  return res.data
+}
+
+// Create an asset group
+export async function createAssetGroup(
+  data: AssetGroupFormValues
+): Promise<ApiResponse<AssetGroup>> {
+  const res = await api.post('/api/asset-group/', data)
+  return res.data
+}
+
+// Update an asset group
+export async function updateAssetGroup(
+  id: number,
+  data: AssetGroupFormValues
+): Promise<ApiResponse<AssetGroup>> {
+  const res = await api.put(`/api/asset-group/${id}`, data)
+  return res.data
+}
+
+// Delete an asset group
+export async function deleteAssetGroup(id: number): Promise<ApiResponse> {
+  const res = await api.delete(`/api/asset-group/${id}`)
   return res.data
 }

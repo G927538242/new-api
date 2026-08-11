@@ -20,7 +20,7 @@ import type { TFunction } from 'i18next'
 
 import type { StatusBadgeProps } from '@/components/status-badge'
 
-import type { AssetType } from './types'
+import type { AssetStatus, AssetType } from './types'
 
 // ============================================================================
 // Asset Type Configuration
@@ -116,6 +116,71 @@ export function getAssetModelConfig(model: string) {
 }
 
 // ============================================================================
+// Asset Status Configuration
+// ============================================================================
+
+export const ASSET_STATUS = {
+  PENDING: 'pending',
+  PROCESSING: 'processing',
+  ACTIVE: 'active',
+  FAILED: 'failed',
+  LOCAL: 'local',
+} as const
+
+export const ASSET_STATUS_VALUES = [
+  ASSET_STATUS.PENDING,
+  ASSET_STATUS.PROCESSING,
+  ASSET_STATUS.ACTIVE,
+  ASSET_STATUS.FAILED,
+  ASSET_STATUS.LOCAL,
+] as const
+
+export const ASSET_STATUS_CONFIG: Record<
+  AssetStatus,
+  Pick<StatusBadgeProps, 'variant'> & {
+    labelKey: string
+    value: AssetStatus
+  }
+> = {
+  [ASSET_STATUS.PENDING]: {
+    labelKey: '待处理',
+    variant: 'warning',
+    value: ASSET_STATUS.PENDING,
+  },
+  [ASSET_STATUS.PROCESSING]: {
+    labelKey: '处理中',
+    variant: 'info',
+    value: ASSET_STATUS.PROCESSING,
+  },
+  [ASSET_STATUS.ACTIVE]: {
+    labelKey: '已生效',
+    variant: 'success',
+    value: ASSET_STATUS.ACTIVE,
+  },
+  [ASSET_STATUS.FAILED]: {
+    labelKey: '失败',
+    variant: 'danger',
+    value: ASSET_STATUS.FAILED,
+  },
+  [ASSET_STATUS.LOCAL]: {
+    labelKey: '本地',
+    variant: 'neutral',
+    value: ASSET_STATUS.LOCAL,
+  },
+}
+
+export function getAssetStatusOptions(t: TFunction) {
+  return Object.values(ASSET_STATUS_CONFIG).map((config) => ({
+    label: t(config.labelKey),
+    value: config.value,
+  }))
+}
+
+export function getAssetStatusConfig(status: string) {
+  return ASSET_STATUS_CONFIG[status as AssetStatus]
+}
+
+// ============================================================================
 // Filter Defaults
 // ============================================================================
 
@@ -134,6 +199,11 @@ export const ERROR_MESSAGES = {
   SEARCH_FAILED: 'Failed to search assets',
   UPLOAD_FAILED: 'Failed to upload asset',
   DELETE_FAILED: 'Failed to delete asset',
+  LOAD_GROUPS_FAILED: '加载分组列表失败',
+  CREATE_GROUP_FAILED: '创建分组失败',
+  UPDATE_GROUP_FAILED: '更新分组失败',
+  DELETE_GROUP_FAILED: '删除分组失败',
+  SYNC_FAILED: '同步状态失败',
 } as const
 
 // ============================================================================
@@ -144,4 +214,8 @@ export const SUCCESS_MESSAGES = {
   ASSET_UPLOADED: 'Asset uploaded successfully',
   ASSET_DELETED: 'Asset deleted successfully',
   COPY_SUCCESS: 'Copied to clipboard',
+  GROUP_CREATED: '分组创建成功',
+  GROUP_UPDATED: '分组更新成功',
+  GROUP_DELETED: '分组删除成功',
+  SYNC_SUCCESS: '同步状态成功',
 } as const
