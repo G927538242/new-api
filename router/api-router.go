@@ -255,7 +255,20 @@ func SetApiRouter(router *gin.Engine) {
 			assetRoute.GET("/:id", controller.GetAsset)
 			assetRoute.POST("/", controller.UploadAsset)
 			assetRoute.DELETE("/:id", controller.DeleteAsset)
+			assetRoute.POST("/:id/sync", controller.SyncAssetStatus)
 		}
+
+		// 素材资产组合（Asset Group）路由
+		assetGroupRoute := apiRouter.Group("/asset-group")
+		assetGroupRoute.Use(middleware.UserAuth())
+		{
+			assetGroupRoute.GET("/", controller.ListAssetGroups)
+			assetGroupRoute.GET("/:id", controller.GetAssetGroup)
+			assetGroupRoute.POST("/", controller.CreateAssetGroup)
+			assetGroupRoute.PUT("/:id", controller.UpdateAssetGroup)
+			assetGroupRoute.DELETE("/:id", controller.DeleteAssetGroup)
+		}
+
 		// 本地存储素材文件访问（通配符路由单独注册，避免与 :id 冲突）
 		apiRouter.GET("/asset/file/*key", middleware.UserAuth(), controller.ServeAssetFile)
 

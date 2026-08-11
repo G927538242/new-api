@@ -162,7 +162,7 @@ func TestUploadLocalMediaToArk_RejectsVideoAndAudioInline(t *testing.T) {
 			content := tc.content(asset.URL)
 			err := uploadLocalMediaToArk(context.Background(), "", "test-api-key", "", 1, content)
 			require.Error(t, err)
-			assert.Contains(t, err.Error(), "use a public URL instead")
+			assert.Contains(t, err.Error(), "not synced to ark")
 		})
 	}
 }

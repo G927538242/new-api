@@ -15,17 +15,16 @@ import (
 	"github.com/pkg/errors"
 )
 
-// maxBase64AssetSize 单个素材允许内嵌的最大字节数。
+// maxBase64AssetSize 单个素材允许内嵌的最大字节数（fallback base64 模式）。
 // 方舟限制单张图片 < 30MB 且请求体 ≤ 64MB，Base64 会膨胀约 1/3，这里留出余量。
 const maxBase64AssetSize int64 = 25 * 1024 * 1024
 
 // uploadLocalMediaToArk 将 content 中引用本平台素材库的媒体 URL 转换为上游可用的
-// data URL（Base64）后替换原 URL。方舟视频生成接口对本地图片素材支持 Base64 编码
-// （data:<mime>;base64,...），但视频/音频仅支持公网 URL，本平台存储的视频/音频素材
-// 无法直接转存，返回错误提示改用公网 URL。非本平台素材库的 URL（客户自托管公网
-// URL、base64、asset:// 素材 ID 等）原样透传。
-func uploadLocalMediaToArk(ctx context.Context, _ string, apiKey string, _ string, userId int, content []ContentItem) error {
-	if len(content) == 0 || apiKey == "" {
+// 引用格式。优先使用方舟素材库的 asset://<AssetID> 引用（需素材已同步到方舟且状态
+// 为 Active），如果素材未同步到方舟则 fallback 到 base64 data URL（仅图片）。
+// 非本平台素材库的 URL（客户自托管公网 URL、base64、asset:// 等）原样透传。
+func uploadLocalMediaToArk(ctx context.Context, _ string, _ string, _ string, userId int, content []ContentItem) error {
+	if len(content) == 0 {
 		return nil
 	}
 	converted := make(map[string]string)
@@ -44,7 +43,7 @@ func uploadLocalMediaToArk(ctx context.Context, _ string, apiKey string, _ strin
 			continue
 		}
 		u := strings.TrimSpace(media.URL)
-		if !shouldUploadToArk(u) {
+		if !shouldProcessUrl(u) {
 			continue
 		}
 		if replaced, ok := converted[u]; ok {
@@ -56,19 +55,18 @@ func uploadLocalMediaToArk(ctx context.Context, _ string, apiKey string, _ strin
 			// 匹配不到素材记录或不属于当前用户，视为非本平台素材，透传原 URL。
 			continue
 		}
-		dataURL, err := assetToDataURL(ctx, asset)
+		replaced, err := resolveAssetURL(ctx, asset)
 		if err != nil {
-			return errors.Wrapf(err, "convert local asset to data url failed (url=%s)", u)
+			return errors.Wrapf(err, "resolve local asset failed (url=%s, asset_id=%d)", u, asset.Id)
 		}
-		media.URL = dataURL
-		converted[u] = dataURL
+		media.URL = replaced
+		converted[u] = replaced
 	}
 	return nil
 }
 
-// shouldUploadToArk 快速过滤：跳过空、base64 编码与方舟素材 ID（asset://）
-// 引用，其余 URL 统一交给素材库记录精确匹配判定。
-func shouldUploadToArk(u string) bool {
+// shouldProcessUrl 快速过滤：跳过空、base64 编码与方舟素材 ID（asset://）引用。
+func shouldProcessUrl(u string) bool {
 	if u == "" {
 		return false
 	}
@@ -81,12 +79,32 @@ func shouldUploadToArk(u string) bool {
 	return true
 }
 
-// assetToDataURL 读取本平台素材文件并转换为 Base64 data URL 用于提交上游。
-// 方舟仅支持图片 Base64 编码，视频/音频素材必须使用公网 URL，这里直接报错提示。
-func assetToDataURL(ctx context.Context, asset *model.Asset) (string, error) {
-	if asset.Type != "image" {
-		return "", fmt.Errorf("video/audio asset cannot be inlined, use a public URL instead (asset id=%d)", asset.Id)
+// resolveAssetURL 将本平台素材解析为方舟可用的引用格式。
+// 优先使用 asset://<UpstreamAssetId>（素材已同步到方舟且状态为 Active），
+// 否则 fallback 到 base64 data URL（仅图片，且有大小限制）。
+func resolveAssetURL(ctx context.Context, asset *model.Asset) (string, error) {
+	// 优先使用方舟素材库引用
+	if asset.UpstreamAssetId != "" && asset.Status == "active" {
+		return "asset://" + asset.UpstreamAssetId, nil
 	}
+
+	// Fallback: 图片素材转 base64 data URL
+	if asset.Type == "image" {
+		return assetToDataURL(ctx, asset)
+	}
+
+	// 视频/音频素材无法 fallback 到 base64
+	if asset.UpstreamAssetId != "" && asset.Status == "processing" {
+		return "", fmt.Errorf("asset is still processing on ark, please wait (asset id=%d)", asset.Id)
+	}
+	if asset.UpstreamAssetId != "" && asset.Status == "failed" {
+		return "", fmt.Errorf("asset processing failed on ark (asset id=%d)", asset.Id)
+	}
+	return "", fmt.Errorf("video/audio asset not synced to ark, cannot use (asset id=%d, status=%s)", asset.Id, asset.Status)
+}
+
+// assetToDataURL 读取本平台素材文件并转换为 Base64 data URL（fallback 模式）。
+func assetToDataURL(ctx context.Context, asset *model.Asset) (string, error) {
 	if asset.Size > maxBase64AssetSize {
 		return "", fmt.Errorf("asset too large (%d bytes, max %d)", asset.Size, maxBase64AssetSize)
 	}
