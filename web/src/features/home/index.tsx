@@ -20,13 +20,23 @@ import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { PublicLayout } from '@/components/layout'
-import { Footer } from '@/components/layout/components/footer'
 import { RichContent } from '@/components/rich-content'
 import { useTheme } from '@/context/theme-provider'
 import { isLikelyHtml } from '@/lib/content-format'
 import { useAuthStore } from '@/stores/auth-store'
 
-import { CTA, Features, Hero, HowItWorks, Stats } from './components'
+import {
+  CTA,
+  CodeSection,
+  Compatibility,
+  FAQ,
+  Features,
+  Hero,
+  HowItWorks,
+  ModelMarquee,
+  PricingTable,
+  Testimonials,
+} from './components'
 import { useHomePageContent } from './hooks'
 
 export function Home() {
@@ -72,14 +82,6 @@ export function Home() {
     if (isUrl) {
       return (
         <PublicLayout showMainContainer={false}>
-          {/*
-            allow-top-navigation-by-user-activation: the custom home page URL is
-            admin-configured (trusted); this lets its target="_top" nav/menu links
-            navigate the top-level window on user click. The default sandbox blocks
-            this on desktop, while some mobile browsers allow it via allow-popups,
-            causing inconsistent behavior. This token only permits user-activated
-            top-level navigation and does NOT grant same-origin access.
-          */}
           <iframe
             ref={iframeRef}
             src={content}
@@ -123,11 +125,15 @@ export function Home() {
   return (
     <PublicLayout showMainContainer={false}>
       <Hero isAuthenticated={isAuthenticated} />
-      <Stats />
+      <ModelMarquee />
       <Features />
+      <Compatibility />
       <HowItWorks />
+      <CodeSection />
+      <PricingTable />
+      <Testimonials />
+      <FAQ />
       <CTA isAuthenticated={isAuthenticated} />
-      <Footer />
     </PublicLayout>
   )
 }

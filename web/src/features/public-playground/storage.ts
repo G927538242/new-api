@@ -1,0 +1,69 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+import type { ChatMessage, PublicPlaygroundConfig } from './types'
+import { DEFAULT_PUBLIC_CONFIG, STORAGE_KEYS } from './types'
+
+export function saveConfig(config: PublicPlaygroundConfig) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(config))
+  } catch {
+    // ignore
+  }
+}
+
+export function getInitialConfig(): PublicPlaygroundConfig {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.CONFIG)
+    if (!raw) return { ...DEFAULT_PUBLIC_CONFIG, baseUrl: window.location.origin + '/v1' }
+    const parsed = JSON.parse(raw) as Partial<PublicPlaygroundConfig>
+    return {
+      baseUrl: parsed.baseUrl || window.location.origin + '/v1',
+      apiKey: parsed.apiKey || '',
+      model: parsed.model || DEFAULT_PUBLIC_CONFIG.model,
+      temperature: parsed.temperature ?? DEFAULT_PUBLIC_CONFIG.temperature,
+      top_p: parsed.top_p ?? DEFAULT_PUBLIC_CONFIG.top_p,
+      max_tokens: parsed.max_tokens ?? DEFAULT_PUBLIC_CONFIG.max_tokens,
+      stream: parsed.stream ?? DEFAULT_PUBLIC_CONFIG.stream,
+    }
+  } catch {
+    return { ...DEFAULT_PUBLIC_CONFIG, baseUrl: window.location.origin + '/v1' }
+  }
+}
+
+export function saveMessages(messages: ChatMessage[]) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages))
+  } catch {
+    // ignore
+  }
+}
+
+export function loadMessages(): ChatMessage[] | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.MESSAGES)
+    if (!raw) return null
+    return JSON.parse(raw) as ChatMessage[]
+  } catch {
+    return null
+  }
+}
+
+export function genId(): string {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36)
+}

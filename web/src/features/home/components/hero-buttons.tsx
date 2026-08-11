@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link } from '@tanstack/react-router'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Terminal } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -33,9 +33,15 @@ export function HeroButtons({ isAuthenticated }: HeroButtonsProps) {
   const { t } = useTranslation()
   if (isAuthenticated) {
     return (
-      <Button size='lg' render={<Link to='/dashboard' />}>
-        {t('Go to Dashboard')} <ArrowRight className='ml-2 h-5 w-5' />
-      </Button>
+      <>
+        <Button size='lg' render={<Link to='/dashboard' />}>
+          {t('Go to Dashboard')} <ArrowRight className='ml-2 h-5 w-5' />
+        </Button>
+        <Button size='lg' variant='outline' render={<Link to='/playground' />}>
+          <Terminal className='mr-2 h-5 w-5' />
+          {t('Open API')}
+        </Button>
+      </>
     )
   }
 
@@ -44,6 +50,10 @@ export function HeroButtons({ isAuthenticated }: HeroButtonsProps) {
       <Button size='lg' render={<Link to='/sign-up' />}>
         {t('Get Started')}
         <ArrowRight className='ml-2 h-5 w-5' />
+      </Button>
+      <Button size='lg' variant='outline' render={<Link to='/sign-in' />}>
+        <Terminal className='mr-2 h-5 w-5' />
+        {t('Open API')}
       </Button>
       <Button size='lg' variant='outline' render={<Link to='/sign-in' />}>
         {t('Sign In')}

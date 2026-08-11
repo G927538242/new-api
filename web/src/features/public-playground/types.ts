@@ -16,25 +16,37 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { createFileRoute, redirect } from '@tanstack/react-router'
+export type MessageRole = 'system' | 'user' | 'assistant'
 
-import { Main } from '@/components/layout'
-import { Playground } from '@/features/playground'
-import { isSidebarModuleEnabled } from '@/lib/nav-modules'
-
-export const Route = createFileRoute('/_authenticated/playground/')({
-  beforeLoad: () => {
-    if (!isSidebarModuleEnabled('chat', 'playground')) {
-      throw redirect({ to: '/dashboard' })
-    }
-  },
-  component: PlaygroundPage,
-})
-
-function PlaygroundPage() {
-  return (
-    <Main className='p-0'>
-      <Playground />
-    </Main>
-  )
+export interface ChatMessage {
+  id: string
+  role: MessageRole
+  content: string
+  status?: 'loading' | 'streaming' | 'complete' | 'error'
+  error?: string
 }
+
+export interface PublicPlaygroundConfig {
+  baseUrl: string
+  apiKey: string
+  model: string
+  temperature: number
+  top_p: number
+  max_tokens: number
+  stream: boolean
+}
+
+export const DEFAULT_PUBLIC_CONFIG: PublicPlaygroundConfig = {
+  baseUrl: window.location.origin + '/v1',
+  apiKey: '',
+  model: 'gpt-4o-mini',
+  temperature: 0.7,
+  top_p: 1,
+  max_tokens: 4096,
+  stream: true,
+}
+
+export const STORAGE_KEYS = {
+  CONFIG: 'public_playground_config',
+  MESSAGES: 'public_playground_messages',
+} as const

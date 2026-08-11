@@ -16,8 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-export type AboutResponse = {
-  success: boolean
-  message: string
-  data?: string
-}
+import { createFileRoute } from '@tanstack/react-router'
+
+import { PublicPlayground } from '@/features/public-playground'
+
+export const Route = createFileRoute('/playground/')({
+  component: PublicPlayground,
+})

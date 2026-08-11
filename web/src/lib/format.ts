@@ -224,6 +224,30 @@ export function formatTokens(tokens: number): string {
 }
 
 /**
+ * Format a file size in bytes into a human-readable string (KB/MB/GB).
+ */
+export function formatFileSize(bytes: number | null | undefined): string {
+  if (bytes == null || Number.isNaN(bytes as number) || bytes <= 0) return '-'
+  const value = bytes as number
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let unitIndex = 0
+  let size = value
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024
+    unitIndex++
+  }
+  let decimals: number
+  if (unitIndex === 0) {
+    decimals = 0
+  } else if (size < 10) {
+    decimals = 2
+  } else {
+    decimals = 1
+  }
+  return `${size.toFixed(decimals)} ${units[unitIndex]}`
+}
+
+/**
  * Format use time in seconds with appropriate unit
  */
 export function formatUseTime(seconds: number): string {

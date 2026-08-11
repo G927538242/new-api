@@ -313,7 +313,7 @@ export function UserAuthForm({
             variant='outline'
             disabled={passkeyButtonDisabled}
             onClick={handlePasskeyLogin}
-            className='h-11 w-full justify-center gap-2 rounded-lg'
+            className='h-11 w-full justify-center gap-2 rounded-lg border-border/60 bg-muted/30 hover:bg-muted/60'
           >
             {isPasskeyLoading ? (
               <Loader2 className='h-4 w-4 animate-spin' />
@@ -397,7 +397,7 @@ export function UserAuthForm({
             {/* Submit Button */}
             <Button
               type='submit'
-              className='mt-2 w-full justify-center gap-2'
+              className='mt-2 h-11 w-full justify-center gap-2 rounded-lg bg-sky-600 text-white hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-400'
               disabled={isLoading || (requiresLegalConsent && !agreedToLegal)}
             >
               {isLoading ? <Loader2 className='animate-spin' /> : <LogIn />}

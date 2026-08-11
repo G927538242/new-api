@@ -16,11 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { api } from '@/lib/api'
+import { AssetsDeleteDialog } from './assets-delete-dialog'
 
-import type { AboutResponse } from './types'
-
-export async function getAboutContent() {
-  const res = await api.get<AboutResponse>('/api/about')
-  return res.data
+export function AssetsDialogs() {
+  return <AssetsDeleteDialog />
 }

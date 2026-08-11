@@ -8,12 +8,28 @@ import { tanstackRouter } from '@tanstack/router-plugin/rspack'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+const DEV_PORT = 3000
+
 export default defineConfig(({ envMode }) => {
   const env = loadEnv({ mode: envMode, prefixes: ['VITE_'] })
-  const serverUrl =
+  let serverUrl =
     process.env.VITE_REACT_APP_SERVER_URL ||
     env.rawPublicVars.VITE_REACT_APP_SERVER_URL ||
     'http://localhost:3000'
+
+  // Prevent self-proxy loop: if the API target port equals the dev server port,
+  // requests will hang indefinitely (dev server proxies to itself). Fall back to
+  // a non-conflicting port so requests fail fast (ECONNREFUSED) instead of hanging.
+  if (envMode !== 'production') {
+    try {
+      const targetPort = parseInt(new URL(serverUrl).port || '0', 10)
+      if (targetPort === DEV_PORT) {
+        serverUrl = `http://localhost:${DEV_PORT + 1}`
+      }
+    } catch {
+      /* invalid URL, leave as-is */
+    }
+  }
 
   const isProd = envMode === 'production'
   const devProxy = Object.fromEntries(
@@ -67,7 +83,8 @@ export default defineConfig(({ envMode }) => {
     },
     server: {
       host: '0.0.0.0',
-      strictPort: false,
+      port: 3000,
+      strictPort: true,
       proxy: devProxy,
     },
     output: {

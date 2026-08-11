@@ -124,13 +124,19 @@ if (!rootElement) {
       ) as HTMLMetaElement | null
       if (metaTitle) metaTitle.setAttribute('content', name)
     }
+    const DEFAULT_FAVICON = '/favicon.png?v=6'
+    // Apply a favicon (fallback to default when url empty)
+    const applyIcon = (url?: string) => {
+      const u = url && url.trim() ? url : DEFAULT_FAVICON
+      applyFaviconToDom(u)
+    }
     // Cache-first
     try {
       const saved = localStorage.getItem('status')
       if (saved) {
         const s = JSON.parse(saved)
         if (s?.system_name) apply(s.system_name)
-        if (s?.logo) applyFaviconToDom(s.logo)
+        applyIcon(s?.logo)
       }
     } catch {
       /* empty */
@@ -146,7 +152,7 @@ if (!rootElement) {
             /* empty */
           }
         }
-        if (s?.logo) applyFaviconToDom(s.logo as string)
+        applyIcon(s?.logo as string | undefined)
       })
       .catch(() => {
         /* empty */

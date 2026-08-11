@@ -245,7 +245,19 @@ func SetApiRouter(router *gin.Engine) {
 			tokenRoute.DELETE("/:id", controller.DeleteToken)
 			tokenRoute.POST("/batch", controller.DeleteTokenBatch)
 			tokenRoute.POST("/batch/keys", middleware.CriticalRateLimit(), middleware.DisableCache(), controller.GetTokenKeysBatch)
+	}
+
+		assetRoute := apiRouter.Group("/asset")
+		assetRoute.Use(middleware.UserAuth())
+		{
+			assetRoute.GET("/", controller.GetAllAssets)
+			assetRoute.GET("/search", controller.SearchAssets)
+			assetRoute.GET("/:id", controller.GetAsset)
+			assetRoute.POST("/", controller.UploadAsset)
+			assetRoute.DELETE("/:id", controller.DeleteAsset)
 		}
+		// 本地存储素材文件访问（通配符路由单独注册，避免与 :id 冲突）
+		apiRouter.GET("/asset/file/*key", middleware.UserAuth(), controller.ServeAssetFile)
 
 		usageRoute := apiRouter.Group("/usage")
 		usageRoute.Use(middleware.CORS(), middleware.CriticalRateLimit())

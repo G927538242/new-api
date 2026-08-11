@@ -27,4 +27,10 @@ import { type TopNavLink } from '../types'
  * This is intentionally empty to encourage backend configuration.
  * If you need fallback links, add them here.
  */
-export const defaultTopNavLinks: TopNavLink[] = []
+export const defaultTopNavLinks: TopNavLink[] = [
+  { title: 'Home', href: '/' },
+  { title: 'Activity', href: '/activity' },
+  { title: 'Console', href: '/dashboard' },
+  { title: 'Open API', href: '/playground' },
+  { title: 'Docs', href: '/docs' },
+]

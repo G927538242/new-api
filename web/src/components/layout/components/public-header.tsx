@@ -175,96 +175,92 @@ export function PublicHeader(props: PublicHeaderProps) {
 
   return (
     <>
-      <header className='pointer-events-none fixed inset-x-0 top-0 z-50'>
-        <div
-          className={cn(
-            'pointer-events-auto mx-auto transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]',
-            scrolled ? 'max-w-[52rem] px-3 pt-3' : 'max-w-7xl px-4 pt-0 md:px-6'
-          )}
-        >
-          <nav
-            className={cn(
-              'flex items-center justify-between transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]',
-              scrolled
-                ? 'bg-background/60 ring-border/50 h-12 rounded-2xl pr-1.5 pl-4 shadow-[0_2px_16px_-6px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.02)] ring-[0.5px] backdrop-blur-2xl dark:shadow-[0_2px_16px_-6px_rgba(0,0,0,0.4)]'
-                : 'h-16 px-2'
-            )}
+      <header className={cn(
+        'fixed inset-x-0 top-0 z-50 transition-all duration-300',
+        scrolled
+          ? 'bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-[0_1px_3px_rgba(0,0,0,0.04)]'
+          : 'bg-transparent border-b border-transparent'
+      )}>
+        <nav className='mx-auto flex h-12 max-w-[1200px] items-center justify-between px-6'>
+          {/* Logo + Brand */}
+          <Link
+            to={homeUrl}
+            className='flex shrink-0 items-center gap-2'
           >
-            {/* Logo */}
-            <Link
-              to={homeUrl}
-              className='group flex shrink-0 items-center gap-2.5'
-            >
-              <div className='flex size-7 shrink-0 items-center justify-center transition-all duration-300 group-hover:scale-105'>
-                {loading ? (
-                  <Skeleton className='size-full rounded-lg' />
-                ) : customLogo ? (
-                  customLogo
-                ) : (
-                  <HeaderLogo
-                    src={systemLogo}
-                    loading={loading}
-                    logoLoaded={logoLoaded}
-                    className='size-full rounded-lg object-contain'
-                  />
-                )}
-              </div>
-              <span className='text-sm font-semibold tracking-tight'>
-                {loading ? <Skeleton className='h-4 w-16' /> : displaySiteName}
-              </span>
-            </Link>
+            <div className='flex size-6 shrink-0 items-center justify-center'>
+              {loading ? (
+                <Skeleton className='size-full' />
+              ) : customLogo ? (
+                customLogo
+              ) : (
+                <HeaderLogo
+                  src={systemLogo}
+                  loading={loading}
+                  logoLoaded={logoLoaded}
+                  className='size-full object-contain'
+                />
+              )}
+            </div>
+            <span className='text-[13px] font-semibold tracking-tight'>
+              {loading ? <Skeleton className='h-3.5 w-24' /> : displaySiteName}
+            </span>
+          </Link>
 
-            {/* Desktop nav */}
-            <div className='hidden items-center gap-0.5 sm:flex'>
-              {links.map((link, i) => {
-                const isActive = pathname === link.href
-                if (link.external) {
-                  return (
-                    <a
-                      key={i}
-                      href={link.href}
-                      target='_blank'
-                      rel='noopener noreferrer'
-                      aria-disabled={link.disabled}
-                      tabIndex={link.disabled ? -1 : undefined}
-                      onClick={(event) => handleNavLinkClick(event, link)}
-                      className={cn(
-                        'text-muted-foreground hover:text-foreground rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-200',
-                        link.disabled && 'pointer-events-none opacity-50'
-                      )}
-                    >
-                      {t(link.title)}
-                    </a>
-                  )
-                }
+          {/* Desktop nav */}
+          <div className='hidden items-center gap-1 md:flex'>
+            {links.map((link, i) => {
+              const isActive = pathname === link.href
+              const commonCls = cn(
+                'relative px-3 py-1.5 text-[13px] transition-colors duration-200 rounded-md',
+                isActive
+                  ? 'text-foreground font-medium'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                link.disabled && 'pointer-events-none opacity-50'
+              )
+              if (link.external) {
                 return (
-                  <Link
+                  <a
                     key={i}
-                    to={link.href}
-                    disabled={link.disabled}
+                    href={link.href}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    aria-disabled={link.disabled}
+                    tabIndex={link.disabled ? -1 : undefined}
                     onClick={(event) => handleNavLinkClick(event, link)}
-                    className={cn(
-                      'rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors duration-200',
-                      isActive
-                        ? 'text-foreground'
-                        : 'text-muted-foreground hover:text-foreground',
-                      link.disabled && 'pointer-events-none opacity-50'
-                    )}
+                    className={commonCls}
                   >
                     {t(link.title)}
-                  </Link>
+                  </a>
                 )
-              })}
+              }
+              return (
+                <Link
+                  key={i}
+                  to={link.href}
+                  disabled={link.disabled}
+                  onClick={(event) => handleNavLinkClick(event, link)}
+                  className={commonCls}
+                >
+                  {t(link.title)}
+                </Link>
+              )
+            })}
+          </div>
 
-              {(showLanguageSwitcher ||
-                showThemeSwitch ||
-                showNotifications) && (
-                <div className='bg-border/40 mx-2 h-4 w-px' />
-              )}
-
-              {showLanguageSwitcher && <LanguageSwitcher />}
-              {showThemeSwitch && <ThemeSwitch />}
-              {showNotifications && (
+          {/* Right actions */}
+          <div className='flex items-center gap-0.5 md:gap-1'>
+            {showLanguageSwitcher && (
+              <div className='hidden sm:block'>
+                <LanguageSwitcher />
+              </div>
+            )}
+            {showThemeSwitch && (
+              <div className='hidden sm:block'>
+                <ThemeSwitch />
+              </div>
+            )}
+            {showNotifications && (
+              <div className='hidden sm:block'>
                 <NotificationPopover
                   open={notifications.popoverOpen}
                   onOpenChange={notifications.setPopoverOpen}
@@ -275,91 +271,80 @@ export function PublicHeader(props: PublicHeaderProps) {
                   announcements={notifications.announcements}
                   loading={notifications.loading}
                 />
-              )}
+              </div>
+            )}
 
-              {showAuthButtons && (
-                <>
-                  <div className='bg-border/40 mx-1 h-4 w-px' />
-                  {loading ? (
-                    <Skeleton className='h-8 w-20 rounded-lg' />
-                  ) : isAuthenticated ? (
+            {showAuthButtons && (
+              <>
+                {loading ? (
+                  <Skeleton className='h-7 w-16 hidden sm:block' />
+                ) : isAuthenticated ? (
+                  <div className='hidden sm:block'>
                     <ProfileDropdown />
-                  ) : (
-                    <Button
-                      size='sm'
-                      className='h-8 rounded-lg px-3.5 text-xs font-medium'
-                      render={<Link to='/sign-in' />}
-                    >
-                      {t('Sign in')}
-                    </Button>
-                  )}
-                </>
-              )}
-            </div>
+                  </div>
+                ) : (
+                  <Link
+                    to='/sign-in'
+                    className='hidden sm:inline-flex h-7 items-center rounded-md px-3 text-[13px] font-medium text-foreground transition-colors hover:bg-muted/50'
+                  >
+                    {t('Sign in')}
+                  </Link>
+                )}
+              </>
+            )}
 
-            {/* Mobile: compact actions + hamburger */}
-            <div className='flex items-center gap-2 sm:hidden'>
+            {/* Mobile hamburger */}
+            <div className='flex items-center sm:hidden'>
               {showThemeSwitch && <ThemeSwitch />}
-              {showAuthButtons && !loading && isAuthenticated && (
-                <ProfileDropdown />
-              )}
-              <Button
+              {showLanguageSwitcher && <LanguageSwitcher />}
+              <button
                 type='button'
-                variant='ghost'
-                size='icon'
-                className='size-9'
+                className='inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground hover:bg-muted/50'
                 onClick={() => setMobileOpen((v) => !v)}
                 aria-label={t('Toggle navigation menu')}
               >
-                <div className='relative size-4'>
-                  <span
-                    className={cn(
-                      'absolute inset-x-0 block h-[1.5px] origin-center rounded-full bg-current transition-all duration-300',
-                      mobileOpen ? 'top-[7px] rotate-45' : 'top-[3px]'
-                    )}
-                  />
-                  <span
-                    className={cn(
-                      'absolute inset-x-0 top-[7px] block h-[1.5px] rounded-full bg-current transition-all duration-300',
-                      mobileOpen ? 'scale-x-0 opacity-0' : 'opacity-100'
-                    )}
-                  />
-                  <span
-                    className={cn(
-                      'absolute inset-x-0 block h-[1.5px] origin-center rounded-full bg-current transition-all duration-300',
-                      mobileOpen ? 'top-[7px] -rotate-45' : 'top-[11px]'
-                    )}
-                  />
-                </div>
-              </Button>
+                <svg width='16' height='16' viewBox='0 0 16 16' fill='none'>
+                  {mobileOpen ? (
+                    <path d='M3 3L13 13M13 3L3 13' stroke='currentColor' strokeWidth='1.5' strokeLinecap='round' />
+                  ) : (
+                    <>
+                      <path d='M2.5 4H13.5' stroke='currentColor' strokeWidth='1.5' strokeLinecap='round' />
+                      <path d='M2.5 8H13.5' stroke='currentColor' strokeWidth='1.5' strokeLinecap='round' />
+                      <path d='M2.5 12H13.5' stroke='currentColor' strokeWidth='1.5' strokeLinecap='round' />
+                    </>
+                  )}
+                </svg>
+              </button>
             </div>
-          </nav>
-        </div>
+          </div>
+        </nav>
       </header>
 
       {/* Mobile full-screen overlay */}
       <div
         className={cn(
-          'bg-background/98 fixed inset-0 z-40 backdrop-blur-2xl transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] sm:pointer-events-none sm:hidden',
+          'fixed inset-x-0 top-12 z-40 border-t border-border/50 bg-background/95 backdrop-blur-xl transition-all duration-300 sm:hidden',
           mobileOpen
-            ? 'pointer-events-auto opacity-100'
-            : 'pointer-events-none opacity-0'
+            ? 'pointer-events-auto translate-y-0 opacity-100'
+            : 'pointer-events-none -translate-y-2 opacity-0'
         )}
       >
-        <div className='flex h-full flex-col justify-between px-8 pt-20 pb-10'>
-          <nav className='flex flex-col gap-1'>
+        <div className='flex h-[calc(100vh-3rem)] flex-col justify-between px-6 py-6'>
+          <nav className='flex flex-col gap-0.5'>
             {links.map((link, i) => {
               const isActive = pathname === link.href
               const linkClassName = cn(
-                'flex items-center gap-3 py-3 text-base font-medium tracking-tight transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]',
+                'block rounded-md px-3 py-2.5 text-[15px] font-medium transition-colors',
                 mobileOpen
                   ? 'translate-y-0 opacity-100'
-                  : 'translate-y-4 opacity-0',
-                isActive ? 'text-foreground' : 'text-muted-foreground',
+                  : 'translate-y-2 opacity-0',
+                isActive
+                  ? 'text-foreground bg-muted/50'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/30',
                 link.disabled && 'pointer-events-none opacity-50'
               )
               const transitionStyle = {
-                transitionDelay: mobileOpen ? `${100 + i * 50}ms` : '0ms',
+                transitionDelay: mobileOpen ? `${60 + i * 30}ms` : '0ms',
               }
               if (link.external) {
                 return (
@@ -395,20 +380,20 @@ export function PublicHeader(props: PublicHeaderProps) {
 
           <div
             className={cn(
-              'flex flex-col gap-3 transition-all duration-500',
+              'flex flex-col gap-2 transition-all duration-300',
               mobileOpen
                 ? 'translate-y-0 opacity-100'
-                : 'translate-y-4 opacity-0'
+                : 'translate-y-2 opacity-0'
             )}
-            style={{ transitionDelay: mobileOpen ? '250ms' : '0ms' }}
+            style={{ transitionDelay: mobileOpen ? '150ms' : '0ms' }}
           >
-            {showAuthButtons && (
+            {showAuthButtons && !isAuthenticated && (
               <Link
-                to={isAuthenticated ? '/dashboard' : '/sign-in'}
+                to='/sign-in'
                 onClick={() => setMobileOpen(false)}
-                className='bg-foreground text-background inline-flex h-10 items-center justify-center rounded-lg text-sm font-medium transition-opacity hover:opacity-90 active:opacity-80'
+                className='inline-flex h-10 items-center justify-center rounded-md bg-foreground px-4 text-sm font-medium text-background transition-colors hover:opacity-90'
               >
-                {isAuthenticated ? t('Go to Dashboard') : t('Sign in')}
+                {t('Sign in')}
               </Link>
             )}
           </div>
@@ -437,7 +422,7 @@ export function PublicHeader(props: PublicHeaderProps) {
           </>
         }
       >
-        <div className='bg-muted/40 text-muted-foreground rounded-lg px-3 py-2 text-sm'>
+        <div className='bg-muted/40 text-muted-foreground rounded-md px-3 py-2 text-sm'>
           {t('Redirecting to sign in in {{seconds}} seconds.', {
             seconds: authPromptSecondsLeft,
           })}

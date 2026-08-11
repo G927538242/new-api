@@ -95,11 +95,29 @@ For commercial licensing, please contact support@quantumnous.com
     @apply overflow-x-hidden font-sans;
   }
   body {
-    @apply bg-background text-foreground has-[div[data-variant='inset']]:bg-sidebar min-h-svh w-full;
+    @apply text-foreground has-[div[data-variant='inset']]:bg-sidebar min-h-svh w-full;
     /* Font is driven by the theme's font axis via `--font-body`
      * (defined in theme.css, swapped by `[data-theme-font='...']` blocks
      * in theme-presets.css). Defaults to the project's humanist sans. */
     font-family: var(--font-body);
+  }
+
+  .home-bg {
+    background: #f8fafc;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(14, 165, 233, 0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 85% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse 50% 50% at 10% 30%, rgba(14, 165, 233, 0.06) 0%, transparent 40%);
+    background-attachment: fixed;
+  }
+
+  .dark .home-bg {
+    background: #0a0f1c;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(56, 189, 248, 0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 85% 20%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse 50% 50% at 10% 30%, rgba(56, 189, 248, 0.04) 0%, transparent 40%);
+    background-attachment: fixed;
   }
 
   /* Keep sticky headers stable while primitives lock body scrolling. */
@@ -508,6 +526,24 @@ For commercial licensing, please contact support@quantumnous.com
   animation: landing-fade-right 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Infinite marquee scroll for model provider showcase */
+@keyframes home-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.home-marquee-track {
+  animation: home-marquee 32s linear infinite;
+}
+
+.home-marquee-track:hover {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .landing-animate-fade-up,
   .landing-animate-fade-in,
@@ -517,6 +553,10 @@ For commercial licensing, please contact support@quantumnous.com
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
+  }
+
+  .home-marquee-track {
+    animation: none !important;
   }
 }
 
@@ -648,5 +688,16 @@ For commercial licensing, please contact support@quantumnous.com
   .terminal-demo-spin,
   .terminal-demo-pulse {
     animation: none !important;
+  }
+}
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translate3d(0, 12px, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@layer utilities {
+  .home-fade-in-up {
+    animation: fadeInUp 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
 }

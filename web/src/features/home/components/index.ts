@@ -16,8 +16,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+export { Compatibility } from './sections/compatibility'
 export { CTA } from './sections/cta'
+export { CodeSection } from './sections/code-section'
+export { FAQ } from './sections/faq'
 export { Features } from './sections/features'
 export { Hero } from './sections/hero'
 export { HowItWorks } from './sections/how-it-works'
+export { ModelMarquee } from './sections/model-marquee'
+export { PricingTable } from './sections/pricing-table'
 export { Stats } from './sections/stats'
+export { Testimonials } from './sections/testimonials'

@@ -39,8 +39,7 @@ export type TopNavLink = {
  *   console: true,
  *   pricing: { enabled: true, requireAuth: false },
  *   rankings: { enabled: true, requireAuth: false },
- *   docs: true,
- *   about: true
+ *   docs: true
  * }
  */
 export function useTopNavLinks(): TopNavLink[] {
@@ -67,9 +66,18 @@ export function useTopNavLinks(): TopNavLink[] {
     links.push({ title: t('Home'), href: '/' })
   }
 
+  // Activity
+  links.push({ title: t('Activity'), href: '/activity' })
+
   // Console -> /dashboard (new console path)
   if (modules?.console !== false) {
     links.push({ title: t('Console'), href: '/dashboard' })
+  }
+
+  // Open API -> /playground (公开页，无需登录)
+  const openApi = modules?.openApi
+  if (openApi && typeof openApi === 'object' && openApi.enabled) {
+    links.push({ title: t('Open API'), href: '/playground', requiresAuth: false })
   }
 
   // Pricing
@@ -95,10 +103,17 @@ export function useTopNavLinks(): TopNavLink[] {
     }
   }
 
-  // About
-  if (modules?.about !== false) {
-    links.push({ title: t('About'), href: '/about' })
-  }
-
-  return links
+  // Filter out any "about" links that might come from backend config
+  // About page has been removed, so we ensure it never appears in navigation
+  return links.filter((link) => {
+    const hrefLower = link.href.toLowerCase()
+    const titleLower = link.title.toLowerCase()
+    return (
+      !hrefLower.includes('/about') &&
+      !hrefLower.includes('/about') &&
+      titleLower !== 'about' &&
+      titleLower !== '关于' &&
+      titleLower !== '關於'
+    )
+  })
 }

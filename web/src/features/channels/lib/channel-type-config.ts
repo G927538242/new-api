@@ -164,6 +164,30 @@ export const CHANNEL_TYPE_CONFIGS: Record<number, ChannelTypeConfig> = {
       models: 'Models',
     },
   },
+  54: {
+    id: 54,
+    name: CHANNEL_TYPES[54],
+    icon: 'Doubao',
+    defaultBaseUrl: 'https://ark.cn-beijing.volces.com',
+    supportedModels: [
+      'doubao-seedance-1-0-pro-250528',
+      'doubao-seedance-1-0-lite-t2v',
+      'doubao-seedance-1-0-lite-i2v',
+      'doubao-seedance-1-5-pro-251215',
+      'doubao-seedance-2-0-260128',
+      'doubao-seedance-2-0-fast-260128',
+      'doubao-seedance-2-0-mini-260615',
+      'doubao-seedance-2-5-260628',
+    ],
+    hints: {
+      baseUrl: 'Default: https://ark.cn-beijing.volces.com',
+      key: 'Ark API Key (Bearer token)',
+      models:
+        'doubao-seedance-2-0-260128,doubao-seedance-2-0-mini-260615,doubao-seedance-2-5-260628',
+      other:
+        'Supports text-to-video, image-to-video (first/last frame), and video-to-video. Use metadata for resolution, ratio, duration, etc.',
+    },
+  },
 }
 
 /**

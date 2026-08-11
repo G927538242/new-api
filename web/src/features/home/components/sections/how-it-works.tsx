@@ -16,72 +16,73 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Settings, Zap, BarChart3 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-
-import { AnimateInView } from '@/components/animate-in-view'
 
 export function HowItWorks() {
   const { t } = useTranslation()
 
   const steps = [
     {
-      num: '1',
-      title: t('Configure'),
-      desc: t(
-        'Add your API keys, set up channels and configure access permissions'
-      ),
-      icon: <Settings className='size-6' strokeWidth={1.5} />,
+      num: '01',
+      title: t('home.steps.01.title'),
+      desc: t('home.steps.01.desc'),
+      hint: t('home.steps.01.hint'),
     },
     {
-      num: '2',
-      title: t('Connect'),
-      desc: t(
-        'Connect through OpenAI, Claude, Gemini, and other compatible API routes'
-      ),
-      icon: <Zap className='size-6' strokeWidth={1.5} />,
+      num: '02',
+      title: t('home.steps.02.title'),
+      desc: t('home.steps.02.desc'),
+      hint: t('home.steps.02.hint'),
     },
     {
-      num: '3',
-      title: t('Monitor'),
-      desc: t('Track usage, costs and performance with real-time analytics'),
-      icon: <BarChart3 className='size-6' strokeWidth={1.5} />,
+      num: '03',
+      title: t('home.steps.03.title'),
+      desc: t('home.steps.03.desc'),
+      hint: t('home.steps.03.hint'),
     },
   ]
 
   return (
-    <section className='border-border/40 relative z-10 border-t px-6 py-24 md:py-32'>
-      <div className='mx-auto max-w-6xl'>
-        <AnimateInView className='mb-16 text-center md:mb-20'>
-          <p className='text-muted-foreground mb-3 text-xs font-medium tracking-widest uppercase'>
-            {t('How It Works')}
+    <section className='border-t border-border bg-transparent py-28 md:py-36'>
+      <div className='mx-auto max-w-[1100px] px-6'>
+        <div className='home-fade-in-up mb-16 max-w-xl' style={{ animationDelay: '0ms' }}>
+          <p className='mb-3 text-[11px] tracking-[0.2em] uppercase text-muted-foreground'>
+            {t('home.steps.eyebrow')}
           </p>
-          <h2 className='text-2xl font-bold tracking-tight md:text-3xl'>
-            {t('Three steps to get started')}
+          <h2 className='text-[clamp(1.75rem,3.5vw,2.5rem)] leading-[1.15] font-semibold tracking-[-0.01em]'>
+            {t('home.steps.title')}
           </h2>
-        </AnimateInView>
+          <p className='mt-4 text-[15px] leading-7 text-muted-foreground'>
+            {t('home.steps.subtitle')}
+          </p>
+        </div>
 
-        <div className='grid gap-8 md:grid-cols-3 md:gap-12'>
+        <div className='grid gap-6 md:grid-cols-3'>
           {steps.map((step, i) => (
-            <AnimateInView
+            <div
               key={step.num}
-              delay={i * 150}
-              animation='fade-up'
-              className='relative flex flex-col items-center text-center'
+              className='home-fade-in-up border border-border rounded-md p-7 bg-background opacity-0'
+              style={{ animationDelay: `${(i + 1) * 80}ms` }}
             >
-              <div className='relative mb-6'>
-                <div className='text-muted-foreground border-border/50 bg-muted/30 flex size-16 items-center justify-center rounded-2xl border transition-colors'>
-                  {step.icon}
-                </div>
-                <div className='bg-foreground text-background absolute -top-2 -right-2 flex size-6 items-center justify-center rounded-full text-xs font-bold'>
+              <div className='grid grid-cols-[auto_1fr] gap-5'>
+                <div className='text-5xl font-semibold tracking-tight text-muted-foreground/20 tabular-nums'>
                   {step.num}
                 </div>
+                <div className='min-w-0'>
+                  <h3 className='text-[15px] font-semibold text-foreground'>
+                    {step.title}
+                  </h3>
+                  <p className='mt-2 text-[14px] leading-6 text-muted-foreground'>
+                    {step.desc}
+                  </p>
+                  {step.hint && (
+                    <div className='mt-4 border-t border-border pt-4 font-mono text-[12px] text-foreground/60'>
+                      {step.hint}
+                    </div>
+                  )}
+                </div>
               </div>
-              <h3 className='mb-2 text-base font-semibold'>{step.title}</h3>
-              <p className='text-muted-foreground max-w-[240px] text-sm leading-relaxed'>
-                {step.desc}
-              </p>
-            </AnimateInView>
+            </div>
           ))}
         </div>
       </div>

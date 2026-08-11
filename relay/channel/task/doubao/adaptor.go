@@ -73,11 +73,13 @@ type responseTask struct {
 	Model   string `json:"model"`
 	Status  string `json:"status"`
 	Content struct {
-		VideoURL string `json:"video_url"`
+		VideoURL     string `json:"video_url"`
+		LastFrameURL string `json:"last_frame_url"`
 	} `json:"content"`
 	Seed            int    `json:"seed"`
 	Resolution      string `json:"resolution"`
 	Duration        int    `json:"duration"`
+	Frames          *int   `json:"frames"`
 	Ratio           string `json:"ratio"`
 	FramesPerSecond int    `json:"framespersecond"`
 	ServiceTier     string `json:"service_tier"`
@@ -277,27 +279,38 @@ func (a *TaskAdaptor) convertToRequestPayload(req *relaycommon.TaskSubmitReq) (*
 		Content: []ContentItem{},
 	}
 
-	// Add images if present
-	if req.HasImage() {
-		for _, imgURL := range req.Images {
-			r.Content = append(r.Content, ContentItem{
-				Type: "image_url",
-				ImageURL: &MediaURL{
-					URL: imgURL,
-				},
-			})
-		}
-	}
-
+	// First, unmarshal metadata into r. This may set content (including
+	// video_url, audio_url for Seedance 2.0/2.5 multimodal input, asset://
+	// references, etc.), resolution, ratio, duration, and other params.
 	metadata := req.Metadata
 	if err := taskcommon.UnmarshalMetadata(metadata, &r); err != nil {
 		return nil, errors.Wrap(err, "unmarshal metadata failed")
+	}
+
+	// If metadata already provided content, use it as the base. Otherwise, add
+	// images from the top-level Images field with appropriate Seedance roles.
+	hasContentFromMetadata := len(r.Content) > 0
+	if !hasContentFromMetadata && req.HasImage() {
+		for i, imgURL := range req.Images {
+			role := "reference_image"
+			if i == 0 {
+				role = "first_frame"
+			} else if i == 1 && len(req.Images) == 2 {
+				role = "last_frame"
+			}
+			r.Content = append(r.Content, ContentItem{
+				Type:     "image_url",
+				ImageURL: &MediaURL{URL: imgURL},
+				Role:     role,
+			})
+		}
 	}
 
 	if sec, _ := strconv.Atoi(req.Seconds); sec > 0 {
 		r.Duration = lo.ToPtr(dto.IntValue(sec))
 	}
 
+	// Remove any existing text items and append the prompt as the last text item
 	r.Content = lo.Reject(r.Content, func(c ContentItem, _ int) bool { return c.Type == "text" })
 	r.Content = append(r.Content, ContentItem{
 		Type: "text",
@@ -317,7 +330,7 @@ func (a *TaskAdaptor) ParseTaskResult(respBody []byte) (*relaycommon.TaskInfo, e
 		Code: 0,
 	}
 
-	// Map Doubao status to internal status
+	// Map Doubao/Seedance status to internal status
 	switch resTask.Status {
 	case "pending", "queued":
 		taskResult.Status = model.TaskStatusQueued
@@ -336,6 +349,14 @@ func (a *TaskAdaptor) ParseTaskResult(respBody []byte) (*relaycommon.TaskInfo, e
 		taskResult.Status = model.TaskStatusFailure
 		taskResult.Progress = "100%"
 		taskResult.Reason = resTask.Error.Message
+	case "cancelled":
+		taskResult.Status = model.TaskStatusFailure
+		taskResult.Progress = "100%"
+		taskResult.Reason = "task cancelled"
+	case "expired":
+		taskResult.Status = model.TaskStatusFailure
+		taskResult.Progress = "100%"
+		taskResult.Reason = "task expired"
 	default:
 		// Unknown status, treat as processing
 		taskResult.Status = model.TaskStatusInProgress
@@ -357,6 +378,9 @@ func (a *TaskAdaptor) ConvertToOpenAIVideo(originTask *model.Task) ([]byte, erro
 	openAIVideo.Status = originTask.Status.ToVideoStatus()
 	openAIVideo.SetProgressStr(originTask.Progress)
 	openAIVideo.SetMetadata("url", dResp.Content.VideoURL)
+	if dResp.Content.LastFrameURL != "" {
+		openAIVideo.SetMetadata("last_frame_url", dResp.Content.LastFrameURL)
+	}
 	openAIVideo.CreatedAt = originTask.CreatedAt
 	openAIVideo.CompletedAt = originTask.UpdatedAt
 	openAIVideo.Model = originTask.Properties.OriginModelName
