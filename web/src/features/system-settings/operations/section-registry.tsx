@@ -144,7 +144,7 @@ const OPERATIONS_SECTIONS = [
   },
   {
     id: 'material-library',
-    titleKey: 'Material Library',
+    titleKey: '存储配置',
     build: (settings: OperationsSettings) => (
       <MaterialLibrarySection
         defaultValues={{

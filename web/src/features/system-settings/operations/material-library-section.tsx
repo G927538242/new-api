@@ -180,13 +180,13 @@ export function MaterialLibrarySection({
   }
 
   return (
-    <SettingsSection title='素材库配置'>
+    <SettingsSection title='存储配置'>
       <Form {...form}>
         <SettingsForm onSubmit={form.handleSubmit(onSubmit)}>
           <SettingsPageFormActions
             onSave={form.handleSubmit(onSubmit)}
             isSaving={updateOption.isPending}
-            saveLabel='保存素材库设置'
+            saveLabel='保存存储配置'
           />
 
           <SettingsCard title='对象存储配置（S3/OSS/MinIO/TOS）'>
