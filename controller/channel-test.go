@@ -73,18 +73,91 @@ func resolveChannelTestUserID(c *gin.Context) (int, error) {
 	return rootUser.Id, nil
 }
 
+// testDoubaoVideoChannel 通过 GET /api/v3/models 端点验证 Doubao Video 渠道的 API Key 和网络连通性
+func testDoubaoVideoChannel(ctx context.Context, channel *model.Channel) testResult {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	baseURL := channel.GetBaseURL()
+	if baseURL == "" {
+		return testResult{
+			localErr: errors.New("channel base URL is not configured"),
+		}
+	}
+
+	// 构建请求 URL
+	requestURL := strings.TrimRight(baseURL, "/") + "/api/v3/models"
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
+	if err != nil {
+		return testResult{
+			localErr: fmt.Errorf("failed to create request: %w", err),
+		}
+	}
+
+	// 设置请求头
+	req.Header.Set("Authorization", "Bearer "+channel.Key)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	// 获取 HTTP 客户端（使用默认配置）
+	client := &http.Client{Timeout: 15 * time.Second}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return testResult{
+			localErr: fmt.Errorf("failed to connect to upstream: %w", err),
+		}
+	}
+	defer resp.Body.Close()
+
+	// 读取响应体用于错误信息
+	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
+	bodyStr := string(respBody)
+
+	// 根据状态码返回结果
+	switch resp.StatusCode {
+	case http.StatusOK, http.StatusCreated, http.StatusAccepted:
+		// 成功
+		return testResult{}
+	case http.StatusUnauthorized:
+		return testResult{
+			localErr: errors.New("API Key 无效或已过期 (401 Unauthorized)"),
+		}
+	case http.StatusForbidden:
+		return testResult{
+			localErr: errors.New("无权访问该资源 (403 Forbidden)"),
+		}
+	default:
+		if len(bodyStr) > 0 {
+			return testResult{
+				localErr: fmt.Errorf("upstream returned %d: %s", resp.StatusCode, bodyStr),
+			}
+		}
+		return testResult{
+			localErr: fmt.Errorf("upstream returned %d", resp.StatusCode),
+		}
+	}
+}
+
 func testChannel(ctx context.Context, channel *model.Channel, testUserID int, testModel string, endpointType string, isStream bool) testResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	tik := time.Now()
+
+	// Doubao Video 渠道：通过 GET /api/v3/models 端点验证 API Key 和网络连通性
+	if channel.Type == constant.ChannelTypeDoubaoVideo {
+		return testDoubaoVideoChannel(ctx, channel)
+	}
+
 	var unsupportedTestChannelTypes = []int{
 		constant.ChannelTypeMidjourney,
 		constant.ChannelTypeMidjourneyPlus,
 		constant.ChannelTypeSunoAPI,
 		constant.ChannelTypeKling,
 		constant.ChannelTypeJimeng,
-		constant.ChannelTypeDoubaoVideo,
 		constant.ChannelTypeVidu,
 	}
 	if lo.Contains(unsupportedTestChannelTypes, channel.Type) {
