@@ -197,6 +197,13 @@ func (a *TaskAdaptor) BuildRequestBody(c *gin.Context, info *relaycommon.RelayIn
 	} else {
 		info.UpstreamModelName = body.Model
 	}
+
+	// 将 content 中引用本平台素材库的媒体 URL 二次上传到方舟 Files API，
+	// 用返回的公网 download_url 替换，确保上游可以拉取素材。
+	if err := uploadLocalMediaToArk(c.Request.Context(), a.baseURL, a.apiKey, info.ChannelSetting.Proxy, info.UserId, body.Content); err != nil {
+		return nil, errors.Wrap(err, "upload local media to ark failed")
+	}
+
 	data, err := common.Marshal(body)
 	if err != nil {
 		return nil, err

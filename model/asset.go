@@ -154,6 +154,16 @@ func GetAssetById(id int) (*Asset, error) {
 	return &asset, err
 }
 
+// GetAssetByURL 按 URL 精确匹配查询素材，用于将素材转存到上游前定位存储 key。
+func GetAssetByURL(url string) (*Asset, error) {
+	var asset Asset
+	err := DB.Where("url = ?", url).First(&asset).Error
+	if err != nil {
+		return nil, err
+	}
+	return &asset, nil
+}
+
 // GetAssetByIdAndUserId 按 ID + 用户 ID 查询（权限校验，确保用户只能访问自己的素材）
 func GetAssetByIdAndUserId(id int, userId int) (*Asset, error) {
 	var asset Asset

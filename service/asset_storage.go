@@ -23,6 +23,8 @@ type AssetStorage interface {
 	Upload(ctx context.Context, reader io.Reader, key string, mimeType string) (string, error)
 	// Delete 删除文件。
 	Delete(ctx context.Context, key string) error
+	// Open 打开已存储的文件用于读取（供转存上游等场景使用）。
+	Open(ctx context.Context, key string) (io.ReadCloser, error)
 }
 
 var assetStorage AssetStorage
@@ -93,6 +95,12 @@ func (l *localStorage) Delete(ctx context.Context, key string) error {
 		return err
 	}
 	return nil
+}
+
+func (l *localStorage) Open(ctx context.Context, key string) (io.ReadCloser, error) {
+	safeKey := sanitizeKey(key)
+	fullPath := filepath.Join(l.dir, safeKey)
+	return os.Open(fullPath)
 }
 
 // LocalAssetPath 返回本地存储文件的路径（供 controller 读取文件用）。
@@ -171,6 +179,18 @@ func (s *s3Storage) Delete(ctx context.Context, key string) error {
 		Key:    aws.String(objectKey),
 	})
 	return err
+}
+
+func (s *s3Storage) Open(ctx context.Context, key string) (io.ReadCloser, error) {
+	objectKey := s.prefix + sanitizeKey(key)
+	out, err := s.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(objectKey),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("s3 get object failed: %w", err)
+	}
+	return out.Body, nil
 }
 
 func (s *s3Storage) publicURL(objectKey string) string {

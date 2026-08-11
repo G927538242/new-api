@@ -68,6 +68,9 @@
     },
     {
       "name": "未实现/Files"
+    },
+    {
+      "name": "素材库"
     }
   ],
   "paths": {
@@ -1167,7 +1170,7 @@
       "post": {
         "summary": "创建视频生成任务",
         "deprecated": false,
-        "description": "提交视频生成任务，支持文生视频和图生视频。\n\n返回任务 ID，可通过 GET 接口查询任务状态。\n",
+        "description": "提交视频生成任务，支持文生视频和图生视频，兼容豆包 Seedance (Sendance) 视频生成协议。\n\n支持模型：\n- Seedance：`doubao-seedance-1-0-pro-250528` / `doubao-seedance-1-0-lite-t2v` / `doubao-seedance-1-0-lite-i2v` / `doubao-seedance-1-5-pro-251215` / `doubao-seedance-2-0-260128` / `doubao-seedance-2-0-fast-260128` / `doubao-seedance-2-0-mini-260615` / `doubao-seedance-2-5-260628`\n- 其他：`kling-v1` / `kling-v2` / `cogvideox-2` / `vidu-1` / `jimeng` / `sora`\n\n返回任务 ID，可通过 GET 接口查询任务状态。\n",
         "operationId": "createVideoGeneration",
         "tags": [
           "视频生成"
@@ -1180,11 +1183,21 @@
                 "$ref": "#/components/schemas/VideoRequest"
               },
               "example": {
-                "model": "kling-v1",
+                "model": "doubao-seedance-2-0-260128",
                 "prompt": "宇航员在月球上漫步",
                 "duration": 5,
-                "width": 1280,
-                "height": 720
+                "resolution": "1080p",
+                "ratio": "16:9",
+                "metadata": {
+                  "content": [
+                    {
+                      "type": "video_url",
+                      "video_url": {
+                        "url": "https://example.com/input.mp4"
+                      }
+                    }
+                  ]
+                }
               }
             }
           },
@@ -2305,6 +2318,388 @@
           }
         ]
       }
+    },
+    "/api/asset": {
+      "get": {
+        "summary": "获取素材列表",
+        "deprecated": false,
+        "description": "分页获取当前用户上传的素材列表。\n\n支持按类型和模型过滤：\n- 类型：image / video / audio\n- 模型：sendance-2.0 / sendance-2.5 / kling / sora 等生成模型标识\n\n管理员可查看所有用户的素材（可选 user_id / tenant_id 过滤）。\n",
+        "operationId": "listAssets",
+        "tags": [
+          "素材库"
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "description": "素材类型 (image / video / audio)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "model",
+            "in": "query",
+            "description": "生成模型标识 (如 sendance-2.0)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "description": "用户 ID（管理员可选）",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "description": "租户 ID（管理员可选）",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "description": "每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetListResponse"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "上传素材",
+        "deprecated": false,
+        "description": "上传素材文件（multipart/form-data，字段名 file），用于后续视频生成的多模态输入。\n\n文件大小限制：\n- 图片：30MB\n- 视频：200MB\n- 音频：15MB\n\n根据 MIME 类型自动分类为 image / video / audio，可用于 Seedance (Sendance) 视频生成。\n",
+        "operationId": "uploadAsset",
+        "tags": [
+          "素材库"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "素材文件"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "自定义素材名称"
+                  },
+                  "model": {
+                    "type": "string",
+                    "description": "生成模型标识，如 sendance-2.0"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "上传成功，返回素材对象",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetResponse"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "400": {
+            "description": "请求错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/asset/search": {
+      "get": {
+        "summary": "搜索素材",
+        "deprecated": false,
+        "description": "按关键词搜索素材，支持 type / model / keyword 组合过滤。\n",
+        "operationId": "searchAssets",
+        "tags": [
+          "素材库"
+        ],
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "description": "搜索关键词",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "description": "素材类型 (image / video / audio)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "model",
+            "in": "query",
+            "description": "生成模型标识",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "description": "用户 ID（管理员可选）",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "description": "租户 ID（管理员可选）",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "页码",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "description": "每页数量",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetListResponse"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "401": {
+            "description": "未认证",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/asset/{id}": {
+      "get": {
+        "summary": "获取素材详情",
+        "deprecated": false,
+        "description": "获取单个素材的详细信息。\n",
+        "operationId": "getAsset",
+        "tags": [
+          "素材库"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "素材 ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetResponse"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "素材不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "删除素材",
+        "deprecated": false,
+        "description": "删除指定素材。仅素材所有者或管理员可删除。\n",
+        "operationId": "deleteAsset",
+        "tags": [
+          "素材库"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "素材 ID",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "删除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "素材不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -2334,6 +2729,125 @@
                 "nullable": true
               }
             }
+          }
+        }
+      },
+      "Asset": {
+        "type": "object",
+        "description": "素材对象（用于视频生成的多模态输入）",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "素材 ID"
+          },
+          "user_id": {
+            "type": "integer",
+            "description": "上传用户 ID"
+          },
+          "user_name": {
+            "type": "string",
+            "description": "上传用户名"
+          },
+          "tenant_id": {
+            "type": "integer",
+            "description": "租户 ID",
+            "nullable": true
+          },
+          "tenant_name": {
+            "type": "string",
+            "description": "租户名称",
+            "nullable": true
+          },
+          "model": {
+            "type": "string",
+            "description": "生成模型标识（如 sendance-2.0 / sendance-2.5）",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "description": "素材类型 (image / video / audio)"
+          },
+          "name": {
+            "type": "string",
+            "description": "素材名称"
+          },
+          "storage_key": {
+            "type": "string",
+            "description": "存储 Key",
+            "nullable": true
+          },
+          "url": {
+            "type": "string",
+            "description": "可访问的素材 URL（用于视频生成接口的 image_url / video_url / audio_url 输入）"
+          },
+          "size": {
+            "type": "integer",
+            "description": "文件大小（字节）"
+          },
+          "mime_type": {
+            "type": "string",
+            "description": "MIME 类型",
+            "nullable": true
+          },
+          "duration": {
+            "type": "number",
+            "description": "时长（秒，视频/音频）",
+            "nullable": true
+          },
+          "width": {
+            "type": "integer",
+            "description": "宽度（图片/视频）",
+            "nullable": true
+          },
+          "height": {
+            "type": "integer",
+            "description": "高度（图片/视频）",
+            "nullable": true
+          },
+          "created_time": {
+            "type": "integer",
+            "description": "创建时间戳"
+          }
+        }
+      },
+      "AssetResponse": {
+        "type": "object",
+        "description": "素材响应",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "是否成功"
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Asset"
+          }
+        }
+      },
+      "AssetListResponse": {
+        "type": "object",
+        "description": "素材列表响应",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "是否成功"
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Asset"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "description": "总数"
           }
         }
       },
@@ -4167,12 +4681,12 @@
       },
       "VideoRequest": {
         "type": "object",
-        "description": "视频生成请求",
+        "description": "视频生成请求（兼容豆包 Seedance / Sendance 视频生成协议）",
         "properties": {
           "model": {
             "type": "string",
-            "description": "模型/风格 ID",
-            "example": "kling-v1"
+            "description": "视频生成模型。Seedance 系列：doubao-seedance-1-0-pro-250528 / doubao-seedance-1-0-lite-t2v / doubao-seedance-1-0-lite-i2v / doubao-seedance-1-5-pro-251215 / doubao-seedance-2-0-260128 / doubao-seedance-2-0-fast-260128 / doubao-seedance-2-0-mini-260615 / doubao-seedance-2-5-260628；其他：kling-v1 / kling-v2 / cogvideox-2 / vidu-1",
+            "example": "doubao-seedance-2-0-260128"
           },
           "prompt": {
             "type": "string",
@@ -4183,6 +4697,27 @@
             "type": "string",
             "description": "图片输入 (URL 或 Base64)",
             "example": "https://example.com/image.jpg"
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "多图输入（Seedance 图生视频，按顺序映射为 first_frame / last_frame / reference_image）",
+            "example": [
+              "https://example.com/first-frame.jpg",
+              "https://example.com/last-frame.jpg"
+            ]
+          },
+          "resolution": {
+            "type": "string",
+            "description": "输出分辨率（Seedance 支持 480p / 720p / 1080p / 4k，影响计费倍率）",
+            "example": "1080p"
+          },
+          "ratio": {
+            "type": "string",
+            "description": "画面比例（Seedance 支持 16:9 / 9:16 / 1:1）",
+            "example": "16:9"
           },
           "duration": {
             "type": "number",
@@ -4226,7 +4761,7 @@
           },
           "metadata": {
             "type": "object",
-            "description": "扩展参数 (如 negative_prompt, style, quality_level 等)",
+            "description": "扩展参数。Seedance 支持通过 metadata.content 传入多模态输入：\n- { type: \"text\", text: \"...\" }\n- { type: \"image_url\", image_url: { url }, role: first_frame | last_frame | reference_image }\n- { type: \"video_url\", video_url: { url } }\n- { type: \"audio_url\", audio_url: { url } }\n其他：negative_prompt, style, quality_level, watermark 等",
             "additionalProperties": true,
             "properties": {}
           }
