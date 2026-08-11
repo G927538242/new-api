@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/alert-dialog'
 
 import { deleteAsset } from '../api'
-import { SUCCESS_MESSAGES } from '../constants'
+import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants'
 import { useAssets } from './assets-provider'
 
 export function AssetsDeleteDialog() {
@@ -50,7 +50,11 @@ export function AssetsDeleteDialog() {
         toast.success(t(SUCCESS_MESSAGES.ASSET_DELETED))
         setOpen(null)
         triggerRefresh()
+      } else {
+        toast.error(t(ERROR_MESSAGES.DELETE_FAILED))
       }
+    } catch {
+      toast.error(t(ERROR_MESSAGES.DELETE_FAILED))
     } finally {
       setIsDeleting(false)
     }

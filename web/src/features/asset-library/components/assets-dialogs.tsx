@@ -116,22 +116,20 @@ function GroupMutateDialog({
         setOpen(null)
       } else {
         toast.error(
-          response.message ||
-            t(
-              isEdit
-                ? ERROR_MESSAGES.UPDATE_GROUP_FAILED
-                : ERROR_MESSAGES.CREATE_GROUP_FAILED
-            )
-        )
-      }
-    } catch (error: unknown) {
-      toast.error(
-        (error as Error)?.message ||
           t(
             isEdit
               ? ERROR_MESSAGES.UPDATE_GROUP_FAILED
               : ERROR_MESSAGES.CREATE_GROUP_FAILED
           )
+        )
+      }
+    } catch {
+      toast.error(
+        t(
+          isEdit
+            ? ERROR_MESSAGES.UPDATE_GROUP_FAILED
+            : ERROR_MESSAGES.CREATE_GROUP_FAILED
+        )
       )
     } finally {
       setIsSaving(false)
@@ -251,9 +249,7 @@ function DeleteGroupDialog() {
         triggerGroupsRefresh()
         setOpen(null)
       } else {
-        toast.error(
-          result.message || t(ERROR_MESSAGES.DELETE_GROUP_FAILED)
-        )
+        toast.error(t(ERROR_MESSAGES.DELETE_GROUP_FAILED))
       }
     } catch {
       toast.error(t(ERROR_MESSAGES.DELETE_GROUP_FAILED))

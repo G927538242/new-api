@@ -112,13 +112,16 @@ export async function uploadAsset(
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+    skipBusinessError: true,
   })
   return res.data
 }
 
 // Delete an asset
 export async function deleteAsset(id: number): Promise<ApiResponse> {
-  const res = await api.delete(`/api/asset/${id}/`)
+  const res = await api.delete(`/api/asset/${id}/`, {
+    skipBusinessError: true,
+  })
   return res.data
 }
 
@@ -126,7 +129,9 @@ export async function deleteAsset(id: number): Promise<ApiResponse> {
 export async function syncAssetStatus(
   id: number
 ): Promise<ApiResponse<Asset>> {
-  const res = await api.post(`/api/asset/${id}/sync`)
+  const res = await api.post(`/api/asset/${id}/sync`, undefined, {
+    skipBusinessError: true,
+  })
   return res.data
 }
 
@@ -156,7 +161,9 @@ export async function getAssetGroup(
 export async function createAssetGroup(
   data: AssetGroupFormValues
 ): Promise<ApiResponse<AssetGroup>> {
-  const res = await api.post('/api/asset-group/', data)
+  const res = await api.post('/api/asset-group/', data, {
+    skipBusinessError: true,
+  })
   return res.data
 }
 
@@ -165,12 +172,16 @@ export async function updateAssetGroup(
   id: number,
   data: AssetGroupFormValues
 ): Promise<ApiResponse<AssetGroup>> {
-  const res = await api.put(`/api/asset-group/${id}`, data)
+  const res = await api.put(`/api/asset-group/${id}`, data, {
+    skipBusinessError: true,
+  })
   return res.data
 }
 
 // Delete an asset group
 export async function deleteAssetGroup(id: number): Promise<ApiResponse> {
-  const res = await api.delete(`/api/asset-group/${id}`)
+  const res = await api.delete(`/api/asset-group/${id}`, {
+    skipBusinessError: true,
+  })
   return res.data
 }

@@ -66,14 +66,14 @@ export function Testimonials(_props: TestimonialsProps) {
           {items.map((item, i) => (
             <div
               key={item.name}
-              className='home-fade-in-up border border-border rounded-md p-7 bg-background opacity-0'
+              className='home-fade-in-up border border-border rounded-md p-7 bg-background opacity-0 flex flex-col'
               style={{ animationDelay: `${(i + 1) * 80}ms` }}
             >
               <Quote className='mb-4 size-6 text-muted-foreground/30' />
               <p className='mb-8 text-[14px] leading-6 text-foreground/80 flex-1'>
                 {item.quote}
               </p>
-              <div className='flex items-center gap-3'>
+              <div className='flex items-center gap-3 mt-auto'>
                 <img
                   src={item.avatar}
                   alt={item.name}

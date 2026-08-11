@@ -258,7 +258,7 @@ function AssetsRowActions<TData>({ row }: { row: Row<TData> }) {
         toast.success(t(SUCCESS_MESSAGES.SYNC_SUCCESS))
         triggerRefresh()
       } else {
-        toast.error(result.message || t(ERROR_MESSAGES.SYNC_FAILED))
+        toast.error(t(ERROR_MESSAGES.SYNC_FAILED))
       }
     } catch {
       toast.error(t(ERROR_MESSAGES.SYNC_FAILED))
