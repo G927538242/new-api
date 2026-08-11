@@ -63,7 +63,7 @@ export function AssetsPrimaryButtons() {
         toast.error(t(ERROR_MESSAGES.LOAD_GROUPS_FAILED))
         return []
       }
-      return result.data || []
+      return result.data?.items || []
     },
   })
   const groups = groupsData || []

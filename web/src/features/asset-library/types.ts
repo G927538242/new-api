@@ -130,7 +130,12 @@ export interface GetAssetGroupsParams {
 export interface GetAssetGroupsResponse {
   success: boolean
   message?: string
-  data?: AssetGroup[]
+  data?: {
+    items: AssetGroup[]
+    total: number
+    page: number
+    page_size: number
+  }
 }
 
 // ============================================================================

@@ -346,7 +346,7 @@ export function AssetsTable() {
       if (!result.success) {
         return []
       }
-      return result.data || []
+      return result.data?.items || []
     },
   })
   const groups = groupsData || []
