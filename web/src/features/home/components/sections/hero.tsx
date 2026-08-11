@@ -21,7 +21,6 @@ import { ArrowRight, BookOpen, Terminal } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
-import { useStatus } from '@/hooks/use-status'
 
 import { HeroTerminalDemo } from '../hero-terminal-demo'
 
@@ -46,26 +45,8 @@ const renderOpenApiButton = (isAuthenticated: boolean, t: (k: string) => string)
 
 export function Hero(props: HeroProps) {
   const { t } = useTranslation()
-  const { status } = useStatus()
-  const docsUrl =
-    (status?.docs_link as string | undefined) || '/docs'
-
+  const docsUrl = '/docs'
   const renderDocsButton = () => {
-    const isExternal = docsUrl.startsWith('http')
-    if (isExternal) {
-      return (
-        <Button
-          variant='outline'
-          className='h-11 rounded-md border-sky-200/60 bg-sky-50/60 px-5 text-sm font-medium text-sky-700 backdrop-blur-sm hover:bg-sky-100/70 hover:text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200 dark:hover:bg-sky-500/20'
-          render={
-            <a href={docsUrl} target='_blank' rel='noopener noreferrer' />
-          }
-        >
-          <BookOpen className='mr-1.5 size-4' />
-          <span>{t('Docs')}</span>
-        </Button>
-      )
-    }
     return (
       <Button
         variant='outline'

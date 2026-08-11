@@ -1739,10 +1739,29 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
 
 > **POST** \`/v1/video/generations\`
 
-根据文本提示生成视频，支持纯文生视频和图生视频两种模式。
+根据文本提示生成视频，支持纯文生视频和图生视频两种模式，兼容豆包 Seedance (Sendance) 视频生成协议。
 
 - 文生视频：仅提供 prompt
-- 图生视频：提供 prompt + image_url
+- 图生视频：提供 prompt + image_url（Seedance 支持多图：first_frame / last_frame / reference_image）
+
+## 支持的模型
+
+### Seedance 系列
+
+| 模型 | 说明 |
+|---|---|
+| \`doubao-seedance-1-0-pro-250528\` | 1.0 Pro，高质量视频生成 |
+| \`doubao-seedance-1-0-lite-t2v\` | 1.0 Lite，文生视频 |
+| \`doubao-seedance-1-0-lite-i2v\` | 1.0 Lite，图生视频 |
+| \`doubao-seedance-1-5-pro-251215\` | 1.5 Pro，性能增强 |
+| \`doubao-seedance-2-0-260128\` | 2.0 标准版 |
+| \`doubao-seedance-2-0-fast-260128\` | 2.0 快速版，低延迟 |
+| \`doubao-seedance-2-0-mini-260615\` | 2.0 Mini，轻量低成本 |
+| \`doubao-seedance-2-5-260628\` | 2.5 最新版 |
+
+### 其他模型
+
+\`kling-v1\` / \`kling-v2\` / \`cogvideox-2\` / \`vidu-1\` / \`jimeng\` / \`sora\`
 
 ## 请求参数
 
@@ -1750,19 +1769,57 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
 
 | 参数 | 类型 | 必填 | 说明 |
 |---|---|---|---|
-| \`model\` | string | 是 | 视频生成模型（kling-v2 / cogvideox-2 / vidu-1） |
+| \`model\` | string | 是 | 视频生成模型（推荐 Seedance 系列） |
 | \`prompt\` | string | 是 | 视频描述文本 |
 | \`image_url\` | string | 否 | 参考图片 URL（图生视频模式） |
+| \`images\` | array | 否 | 多图输入（Seedance 图生视频，按顺序映射 first_frame / last_frame / reference_image） |
+| \`resolution\` | string | 否 | 输出分辨率（Seedance：480p / 720p / 1080p / 4k） |
+| \`ratio\` | string | 否 | 画面比例（Seedance：16:9 / 9:16 / 1:1） |
 | \`size\` | string | 否 | 视频尺寸，如 1280x720 |
 | \`duration\` | integer | 否 | 视频时长（秒） |
 | \`n\` | integer | 否 | 生成数量，默认 1 |
+| \`metadata\` | object | 否 | 扩展参数，支持多模态输入（video_url / audio_url）及 negative_prompt、style、watermark 等 |
 
-### 请求示例
+### 请求示例（文生视频）
 
 \`\`\`json
 {
-    "model": "kling-v2",
-    "prompt": "宇航员漫步月球"
+    "model": "doubao-seedance-2-0-260128",
+    "prompt": "宇航员漫步月球",
+    "resolution": "1080p",
+    "ratio": "16:9"
+}
+\`\`\`
+
+### 请求示例（图生视频）
+
+\`\`\`json
+{
+    "model": "doubao-seedance-1-0-lite-i2v",
+    "prompt": "在首帧基础上添加烟花效果",
+    "images": [
+        "https://example.com/first-frame.jpg",
+        "https://example.com/last-frame.jpg"
+    ]
+}
+\`\`\`
+
+### 请求示例（视频续写 / 多模态）
+
+\`\`\`json
+{
+    "model": "doubao-seedance-2-0-260128",
+    "prompt": "让视频中的人物转身看向镜头",
+    "metadata": {
+        "content": [
+            {
+                "type": "video_url",
+                "video_url": {
+                    "url": "https://example.com/input.mp4"
+                }
+            }
+        ]
+    }
 }
 \`\`\`
 
@@ -1773,8 +1830,10 @@ curl --location '{{BASE_URL}}/v1/video/generations' \\
 --header 'Authorization: Bearer <token>' \\
 --header 'Content-Type: application/json' \\
 --data '{
-    "model": "kling-v2",
-    "prompt": "宇航员漫步月球"
+    "model": "doubao-seedance-2-0-260128",
+    "prompt": "宇航员漫步月球",
+    "resolution": "1080p",
+    "ratio": "16:9"
 }'
 \`\`\`
 
@@ -1787,7 +1846,7 @@ curl --location '{{BASE_URL}}/v1/video/generations' \\
     "id": "video-abc123",
     "object": "video.generation",
     "created": 1713833628,
-    "model": "kling-v2",
+    "model": "doubao-seedance-2-0-260128",
     "data": [
         {
             "url": "https://cdn.example.com/video-001.mp4",
@@ -1800,7 +1859,225 @@ curl --location '{{BASE_URL}}/v1/video/generations' \\
         "total_tokens": 20
     }
 }
-\`\`\``,
+\`\`\`
+
+> **注意**：Seedance 2.0 / 2.5 支持多模态输入（视频 + 音频 + 图片），可通过 \`metadata.content\` 传入；任务提交后需通过 \`GET /v1/video/generations/{task_id}\` 轮询任务状态。`,
+  },
+  {
+    id: 'asset-library',
+    title: '素材库',
+    category: 'API 接口',
+    content: `# 素材库
+
+素材库用于管理视频生成所需的多模态素材。客户可通过外部接口上传图片 / 视频 / 音频素材，然后在调用视频生成接口（\`/v1/video/generations\`）时，以 URL 形式引用这些素材作为 Seedance (Sendance) 的多模态输入。
+
+## 接口列表
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| \`POST\` | \`/api/asset\` | 上传素材 |
+| \`GET\` | \`/api/asset\` | 获取素材列表（分页） |
+| \`GET\` | \`/api/asset/search\` | 搜索素材 |
+| \`GET\` | \`/api/asset/{id}\` | 获取素材详情 |
+| \`DELETE\` | \`/api/asset/{id}\` | 删除素材 |
+
+所有素材库接口均需携带 \`Authorization: Bearer <token>\`（平台用户令牌），普通用户只能访问自己的素材，管理员可查看 / 管理所有素材。
+
+## 上传素材
+
+> **POST** \`/api/asset\`
+
+使用 \`multipart/form-data\` 上传素材文件。
+
+### 请求参数
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| \`file\` | file | 是 | 素材文件 |
+| \`name\` | string | 否 | 自定义素材名称 |
+| \`model\` | string | 否 | 生成模型标识，如 \`sendance-2.0\` / \`sendance-2.5\` |
+
+### 文件大小限制（与火山引擎 Seedance 对齐）
+
+| 类型 | 大小限制 |
+|---|---|
+| 图片 (image) | 30MB |
+| 视频 (video) | 200MB |
+| 音频 (audio) | 15MB |
+
+素材类型根据文件的 MIME 类型自动识别：\`image/*\` → image、\`video/*\` → video、\`audio/*\` → audio，其他类型将被拒绝。
+
+### cURL 示例
+
+\`\`\`bash
+curl --location '{{BASE_URL}}/api/asset' \\
+--header 'Authorization: Bearer <token>' \\
+--form 'file=@/path/to/video.mp4' \\
+--form 'name=开场视频' \\
+--form 'model=sendance-2.0'
+\`\`\`
+
+### 返回示例
+
+\`\`\`json
+{
+    "success": true,
+    "message": "",
+    "data": {
+        "id": 1,
+        "user_id": 3,
+        "user_name": "user01",
+        "tenant_id": null,
+        "model": "sendance-2.0",
+        "type": "video",
+        "name": "开场视频.mp4",
+        "storage_key": "video/uuid.mp4",
+        "url": "https://storage.example.com/video/uuid.mp4",
+        "size": 10485760,
+        "mime_type": "video/mp4",
+        "duration": null,
+        "width": null,
+        "height": null,
+        "created_time": 1713833628
+    }
+}
+\`\`\`
+
+> 上传成功后返回的 \`url\` 字段即为素材访问地址，可直接用于视频生成接口。
+
+## 获取素材列表
+
+> **GET** \`/api/asset\`
+
+分页获取素材列表，支持按类型和模型筛选。
+
+### 查询参数
+
+| 参数 | 类型 | 说明 |
+|---|---|---|
+| \`type\` | string | 素材类型 (image / video / audio) |
+| \`model\` | string | 生成模型标识（如 \`sendance-2.0\`） |
+| \`page\` | integer | 页码，默认 0 |
+| \`page_size\` | integer | 每页数量，默认 10 |
+| \`user_id\` | integer | 用户 ID（仅管理员） |
+| \`tenant_id\` | integer | 租户 ID（仅管理员） |
+
+### cURL 示例
+
+\`\`\`bash
+curl --location '{{BASE_URL}}/api/asset?type=video&model=sendance-2.0&page=0&page_size=20' \\
+--header 'Authorization: Bearer <token>'
+\`\`\`
+
+### 返回示例
+
+\`\`\`json
+{
+    "success": true,
+    "message": "",
+    "data": [
+        {
+            "id": 1,
+            "user_id": 3,
+            "type": "video",
+            "name": "开场视频.mp4",
+            "url": "https://storage.example.com/video/uuid.mp4",
+            "model": "sendance-2.0",
+            "size": 10485760,
+            "created_time": 1713833628
+        }
+    ],
+    "total": 1
+}
+\`\`\`
+
+## 搜索素材
+
+> **GET** \`/api/asset/search\`
+
+按关键词搜索素材，参数与获取素材列表相同，额外支持：
+
+| 参数 | 类型 | 说明 |
+|---|---|---|
+| \`keyword\` | string | 搜索关键词（匹配素材名称） |
+
+\`\`\`bash
+curl --location '{{BASE_URL}}/api/asset/search?keyword=开场' \\
+--header 'Authorization: Bearer <token>'
+\`\`\`
+
+## 获取素材详情
+
+> **GET** \`/api/asset/{id}\`
+
+\`\`\`bash
+curl --location '{{BASE_URL}}/api/asset/1' \\
+--header 'Authorization: Bearer <token>'
+\`\`\`
+
+## 删除素材
+
+> **DELETE** \`/api/asset/{id}\`
+
+仅素材所有者或管理员可删除。
+
+\`\`\`bash
+curl --location --request DELETE '{{BASE_URL}}/api/asset/1' \\
+--header 'Authorization: Bearer <token>'
+\`\`\`
+
+## 素材用于 Seedance 视频生成
+
+上传素材后，将返回的 \`url\` 作为视频生成接口的多模态输入：
+
+> **说明**：平台在提交视频生成任务时，会自动将素材库中的**图片**素材读取并转换为 Base64 编码（\`data:image/...;base64,...\`）提交给上游火山方舟，您无需额外准备公网可访问的静态地址；客户自托管且素材库中不存在的公网 URL、Base64 编码、\`asset://\` 素材 ID 则原样透传。**视频/音频**素材仅支持公网 URL 输入，请使用素材库外的公网地址（如图床、对象存储 CDN），单张图片建议不超过 25MB。
+
+### 图生视频（参考图）
+
+\`\`\`json
+{
+    "model": "doubao-seedance-1-0-lite-i2v",
+    "prompt": "将第一帧作为起始画面",
+    "metadata": {
+        "content": [
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": "/api/asset/file/image/uuid.jpg"
+                },
+                "role": "first_frame"
+            }
+        ]
+    }
+}
+\`\`\`
+
+### 视频续写 / 音频输入
+
+\`\`\`json
+{
+    "model": "doubao-seedance-2-0-260128",
+    "prompt": "让视频中的人物转身看向镜头",
+    "metadata": {
+        "content": [
+            {
+                "type": "video_url",
+                "video_url": {
+                    "url": "/api/asset/file/video/uuid.mp4"
+                }
+            },
+            {
+                "type": "audio_url",
+                "audio_url": {
+                    "url": "/api/asset/file/audio/music.mp3"
+                }
+            }
+        ]
+    }
+}
+\`\`\`
+
+> **提示**：\`metadata.content\` 支持 \`text\` / \`image_url\` / \`video_url\` / \`audio_url\` 四种类型，\`image_url\` 可通过 \`role\` 指定 \`first_frame\` / \`last_frame\` / \`reference_image\`。`,
   },
   {
     id: 'moderation',
