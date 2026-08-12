@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
 import type { ColumnDef, Row } from '@tanstack/react-table'
-import { Copy, Film, Music, RefreshCw, Trash2 } from 'lucide-react'
+import { Copy, Eye, RefreshCw, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -59,11 +59,12 @@ import {
   getAssetTypeOptions,
 } from '../constants'
 import type { Asset, AssetStatus, AssetType } from '../types'
+import { AssetPreviewDialog, AssetThumbnail } from './asset-preview'
 import { useAssets } from './assets-provider'
 
 const route = getRouteApi('/_authenticated/asset-library/')
 
-function useAssetsColumns(): ColumnDef<Asset>[] {
+function useAssetsColumns(onPreview: (asset: Asset) => void): ColumnDef<Asset>[] {
   const { t } = useTranslation()
   return [
     {
@@ -71,21 +72,11 @@ function useAssetsColumns(): ColumnDef<Asset>[] {
       header: t('Preview'),
       cell: ({ row }) => {
         const asset = row.original
-        if (asset.type === 'image') {
-          return (
-            <img
-              src={asset.url}
-              alt={asset.name}
-              loading='lazy'
-              className='h-10 w-10 rounded object-cover'
-            />
-          )
-        }
-        const Icon = asset.type === 'video' ? Film : Music
         return (
-          <div className='flex h-10 w-10 items-center justify-center'>
-            <Icon className='text-muted-foreground h-5 w-5' />
-          </div>
+          <AssetThumbnail
+            asset={asset}
+            onClick={() => onPreview(asset)}
+          />
         )
       },
       enableSorting: false,
@@ -229,13 +220,19 @@ function useAssetsColumns(): ColumnDef<Asset>[] {
     {
       id: 'actions',
       header: () => t('Actions'),
-      cell: ({ row }) => <AssetsRowActions row={row} />,
+      cell: ({ row }) => <AssetsRowActions row={row} onPreview={onPreview} />,
       meta: { pinned: 'right' as const },
     },
   ]
 }
 
-function AssetsRowActions<TData>({ row }: { row: Row<TData> }) {
+function AssetsRowActions<TData>({
+  row,
+  onPreview,
+}: {
+  row: Row<TData>
+  onPreview: (asset: Asset) => void
+}) {
   const { t } = useTranslation()
   const { setCurrentRow, setOpen, triggerRefresh } = useAssets()
   const asset = row.original as Asset
@@ -269,6 +266,22 @@ function AssetsRowActions<TData>({ row }: { row: Row<TData> }) {
 
   return (
     <div className='-ml-1.5 flex items-center gap-1'>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              variant='ghost'
+              size='icon-sm'
+              onClick={() => onPreview(asset)}
+              aria-label={t('Preview')}
+            />
+          }
+        >
+          <Eye className='h-4 w-4' />
+        </TooltipTrigger>
+        <TooltipContent>{t('Preview')}</TooltipContent>
+      </Tooltip>
+
       <Tooltip>
         <TooltipTrigger
           render={
@@ -328,7 +341,15 @@ function AssetsRowActions<TData>({ row }: { row: Row<TData> }) {
 
 export function AssetsTable() {
   const { t } = useTranslation()
-  const columns = useAssetsColumns()
+  const [previewAsset, setPreviewAsset] = useState<Asset | null>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
+
+  const handlePreview = (asset: Asset) => {
+    setPreviewAsset(asset)
+    setPreviewOpen(true)
+  }
+
+  const columns = useAssetsColumns(handlePreview)
   const {
     refreshTrigger,
     currentGroupId,
@@ -504,6 +525,7 @@ export function AssetsTable() {
   const assetStatusOptions = useMemo(() => getAssetStatusOptions(t), [t])
 
   return (
+    <>
     <DataTablePage
       table={table}
       columns={columns}
@@ -565,5 +587,11 @@ export function AssetsTable() {
         ],
       }}
     />
+      <AssetPreviewDialog
+        asset={previewAsset}
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+      />
+    </>
   )
 }

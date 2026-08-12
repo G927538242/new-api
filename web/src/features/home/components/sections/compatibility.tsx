@@ -1,21 +1,3 @@
-/*
-Copyright (C) 2023-2026 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
 import { useTranslation } from 'react-i18next'
 
 const apiEndpoints = [
@@ -48,80 +30,93 @@ export function Compatibility() {
   const { t } = useTranslation()
 
   return (
-    <section className='border-t border-border bg-transparent py-28 md:py-36'>
-      <div className='mx-auto max-w-[1100px] px-6'>
-        <div className='home-fade-in-up mb-16 max-w-xl opacity-0' style={{ animationDelay: '0ms' }}>
-          <p className='mb-3 text-[11px] tracking-[0.2em] uppercase text-muted-foreground'>
+    <section className='relative py-32 md:py-40'>
+      <div className='mx-auto max-w-[1200px] px-6'>
+        {/* Header */}
+        <div className='home-reveal-up mb-16 flex flex-col items-center text-center' style={{ animationDelay: '0ms' }}>
+          <span className='mb-4 inline-flex items-center gap-1.5 rounded-full border border-border bg-background/60 px-3 py-1 text-[11px] font-medium tracking-wide text-muted-foreground'>
             {t('home.compatibility.eyebrow')}
-          </p>
-          <h2 className='text-[clamp(1.75rem,3.5vw,2.5rem)] leading-[1.15] font-semibold tracking-[-0.01em]'>
+          </span>
+          <h2 className='max-w-2xl text-[clamp(2rem,4vw,3rem)] leading-[1.15] font-semibold tracking-tight text-foreground'>
             {t('home.compatibility.title')}
           </h2>
-          <p className='mt-4 text-[15px] leading-7 text-muted-foreground'>
+          <p className='mt-5 max-w-xl text-[16px] leading-7 text-muted-foreground'>
             {t('home.compatibility.subtitle')}
           </p>
         </div>
 
-        {/* 兼容的 API 格式 */}
-        <div className='home-fade-in-up mb-12 opacity-0' style={{ animationDelay: '80ms' }}>
-          <div className='grid gap-4 md:grid-cols-3'>
-            {compatibleFormats.map((fmt) => (
-              <div
-                key={fmt.name}
-                className='border border-border rounded-md p-5 bg-background'
-              >
-                <div className='flex items-baseline justify-between'>
-                  <h3 className='text-[14px] font-semibold text-foreground'>{fmt.name}</h3>
-                  <span className='text-[11px] text-muted-foreground font-mono'>兼容</span>
-                </div>
-                <p className='mt-1 text-[12px] text-muted-foreground'>{fmt.desc}</p>
-                <div className='mt-3 space-y-1'>
-                  {fmt.paths.map((p) => (
-                    <p key={p} className='text-[11px] font-mono text-muted-foreground/70'>{p}</p>
-                  ))}
-                </div>
+        {/* Compatible formats */}
+        <div className='mb-12 grid gap-6 md:grid-cols-3'>
+          {compatibleFormats.map((fmt, i) => (
+            <div
+              key={fmt.name}
+              className='home-reveal-up group rounded-2xl border border-border bg-background p-6 home-card-hover'
+              style={{ animationDelay: `${(i + 1) * 100}ms` }}
+            >
+              <div className="flex items-center justify-between">
+                <h3 className='text-[18px] font-semibold text-foreground'>{fmt.name}</h3>
+                <span className='rounded-md border border-border bg-muted/30 px-2 py-0.5 text-[10px] font-medium text-muted-foreground'>
+                  Compatible
+                </span>
               </div>
-            ))}
-          </div>
+              <p className='mt-2 text-[13px] text-muted-foreground'>{fmt.desc}</p>
+              <div className="my-4 h-px bg-border" />
+              <div className='space-y-1 font-mono text-[11px] text-muted-foreground'>
+                {fmt.paths.map((p) => (
+                  <p key={p}>{p}</p>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
 
-        {/* 支持的接口列表 */}
-        <div className='home-fade-in-up mb-12 opacity-0' style={{ animationDelay: '160ms' }}>
-          <h3 className='mb-4 text-[13px] font-medium text-foreground/80'>
-            {t('home.compatibility.endpointsTitle')}
-          </h3>
-          <div className='border border-border rounded-md overflow-hidden'>
-            <div className='grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-y-0 sm:divide-x'>
-              {[apiEndpoints.slice(0, 6), apiEndpoints.slice(6)].map((group, gi) => (
-                <div key={gi} className='divide-y divide-border'>
-                  {group.map((ep) => (
-                    <div
-                      key={ep.path}
-                      className='flex items-center gap-3 px-4 py-2.5 transition-colors duration-150 hover:bg-muted/[0.03]'
-                    >
-                      <span className='inline-flex shrink-0 items-center rounded-sm bg-muted/60 px-1.5 py-0.5 text-[10px] font-mono font-medium text-foreground/60'>
+        {/* API endpoints table */}
+        <div className='home-reveal-up mb-12' style={{ animationDelay: '400ms' }}>
+          <div className="mb-5 flex items-center gap-3">
+            <span className="text-[12px] font-semibold tracking-wide text-muted-foreground">
+              {t('home.compatibility.endpointsTitle')}
+            </span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+          <div className='overflow-hidden rounded-xl border border-border bg-background'>
+            <table className='w-full'>
+              <tbody>
+                {apiEndpoints.map((ep, i) => (
+                  <tr
+                    key={ep.path}
+                    className={`border-b border-border last:border-0 transition-colors hover:bg-muted/30 ${i % 2 === 1 ? 'bg-muted/20' : ''}`}
+                  >
+                    <td className='px-5 py-3.5 w-24'>
+                      <span className='font-mono text-[10px] font-semibold tracking-wider text-muted-foreground'>
                         {ep.method}
                       </span>
-                      <code className='text-[12px] font-mono text-foreground/80'>{ep.path}</code>
-                      <span className='ml-auto text-[12px] text-muted-foreground'>{ep.label}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
+                    </td>
+                    <td className='px-5 py-3.5 font-mono text-[13px] text-foreground'>
+                      {ep.path}
+                    </td>
+                    <td className='px-5 py-3.5 text-right text-[13px] text-muted-foreground'>
+                      {ep.label}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        {/* 支持的工具 */}
-        <div className='home-fade-in-up opacity-0' style={{ animationDelay: '240ms' }}>
-          <h3 className='mb-4 text-[13px] font-medium text-foreground/80'>
-            {t('home.compatibility.toolsTitle')}
-          </h3>
-          <div className='flex flex-wrap gap-2'>
+        {/* Supported tools */}
+        <div className='home-reveal-up' style={{ animationDelay: '500ms' }}>
+          <div className="mb-5 flex items-center gap-3">
+            <span className="text-[12px] font-semibold tracking-wide text-muted-foreground">
+              {t('home.compatibility.toolsTitle')}
+            </span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+          <div className='flex flex-wrap gap-3'>
             {supportedTools.map((tool) => (
               <span
                 key={tool}
-                className='border border-border rounded-md px-3 py-1.5 text-[12px] text-muted-foreground transition-colors duration-150 hover:text-foreground hover:border-border/80'
+                className='rounded-lg border border-border bg-background px-3.5 py-2 text-[13px] text-muted-foreground transition-all hover:border-foreground/30 hover:text-foreground'
               >
                 {tool}
               </span>

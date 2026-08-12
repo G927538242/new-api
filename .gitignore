@@ -43,3 +43,9 @@ service/relayconvert/chat_responses_live_local_test.go
 service/openaicompat/chat_responses_live_local_test.go
 go.work
 go.work.sum
+
+# Local build artifacts.
+new-api-bin
+
+# i18n sync report scratch files.
+web/src/i18n/locales/_reports/*.untranslated.json

@@ -35,6 +35,10 @@ const usersSearchSchema = z.object({
     .array(z.enum(['1', '10', '100']))
     .optional()
     .catch([]),
+  cert_status: z
+    .array(z.enum(['0', '1', '2', '3']))
+    .optional()
+    .catch([]),
   group: z.string().optional().catch(''),
 })
 

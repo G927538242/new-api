@@ -91,6 +91,9 @@ func UploadAsset(c *gin.Context) {
 	groupIdStr := c.PostForm("group_id")
 	groupId, _ := strconv.Atoi(groupIdStr)
 
+	// 解析关联模型（可选）
+	modelName := c.PostForm("model")
+
 	// 生成存储 key：{type}/{uuid}.{ext}
 	ext := filepath.Ext(header.Filename)
 	objectKey := filepath.Join(assetType, uuid.New().String()+ext)
@@ -110,6 +113,7 @@ func UploadAsset(c *gin.Context) {
 	asset := &model.Asset{
 		UserId:      userId,
 		GroupId:     groupId,
+		Model:       modelName,
 		Type:        assetType,
 		Name:        header.Filename,
 		StorageKey:  objectKey,
@@ -290,6 +294,7 @@ func SearchAssets(c *gin.Context) {
 // GetAsset 获取单个素材详情
 func GetAsset(c *gin.Context) {
 	userId := c.GetInt("id")
+	userRole := c.GetInt("role")
 	if userId == 0 {
 		common.ApiErrorMsg(c, "user not found")
 		return
@@ -299,7 +304,12 @@ func GetAsset(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	asset, err := model.GetAssetByIdAndUserId(id, userId)
+	var asset *model.Asset
+	if userRole >= common.RoleAdminUser {
+		asset, err = model.GetAssetById(id)
+	} else {
+		asset, err = model.GetAssetByIdAndUserId(id, userId)
+	}
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -310,6 +320,7 @@ func GetAsset(c *gin.Context) {
 // DeleteAsset 删除素材（同步删除方舟 Asset 和本地存储文件）
 func DeleteAsset(c *gin.Context) {
 	userId := c.GetInt("id")
+	userRole := c.GetInt("role")
 	if userId == 0 {
 		common.ApiErrorMsg(c, "user not found")
 		return
@@ -319,7 +330,14 @@ func DeleteAsset(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	asset, err := model.GetAssetByIdAndUserId(id, userId)
+
+	// 管理员可以删除任意素材，普通用户只能删除自己的素材
+	var asset *model.Asset
+	if userRole >= common.RoleAdminUser {
+		asset, err = model.GetAssetById(id)
+	} else {
+		asset, err = model.GetAssetByIdAndUserId(id, userId)
+	}
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -338,9 +356,19 @@ func DeleteAsset(c *gin.Context) {
 		_ = storage.Delete(c.Request.Context(), asset.StorageKey)
 	}
 
-	if err := model.DeleteAssetByIdAndUserId(id, userId); err != nil {
-		common.ApiError(c, err)
-		return
+	// 删除数据库记录（管理员绕过用户权限校验直接删）
+	if userRole >= common.RoleAdminUser {
+		var a model.Asset
+		a.Id = id
+		if err := a.Delete(); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+	} else {
+		if err := model.DeleteAssetByIdAndUserId(id, userId); err != nil {
+			common.ApiError(c, err)
+			return
+		}
 	}
 	common.ApiSuccess(c, "deleted")
 }
@@ -348,6 +376,7 @@ func DeleteAsset(c *gin.Context) {
 // SyncAssetStatus 同步方舟素材状态（前端轮询用）
 func SyncAssetStatus(c *gin.Context) {
 	userId := c.GetInt("id")
+	userRole := c.GetInt("role")
 	if userId == 0 {
 		common.ApiErrorMsg(c, "user not found")
 		return
@@ -357,7 +386,12 @@ func SyncAssetStatus(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	asset, err := model.GetAssetByIdAndUserId(id, userId)
+	var asset *model.Asset
+	if userRole >= common.RoleAdminUser {
+		asset, err = model.GetAssetById(id)
+	} else {
+		asset, err = model.GetAssetByIdAndUserId(id, userId)
+	}
 	if err != nil {
 		common.ApiError(c, err)
 		return

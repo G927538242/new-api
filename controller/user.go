@@ -354,9 +354,15 @@ func SearchUsers(c *gin.Context) {
 			status = &parsed
 		}
 	}
+	var certStatus *int
+	if certStatusStr := c.Query("cert_status"); certStatusStr != "" {
+		if parsed, err := strconv.Atoi(certStatusStr); err == nil {
+			certStatus = &parsed
+		}
+	}
 	pageInfo := common.GetPageQuery(c)
 	sortOptions := model.NewUserSortOptions(c.Query("sort_by"), c.Query("sort_order"))
-	users, total, err := model.SearchUsers(keyword, group, role, status, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), sortOptions)
+	users, total, err := model.SearchUsers(keyword, group, role, status, certStatus, pageInfo.GetStartIdx(), pageInfo.GetPageSize(), sortOptions)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -516,6 +522,15 @@ func buildSelfUserData(user *model.User) map[string]interface{} {
 	userSetting := user.GetSetting()
 	permissions := calculateUserPermissions(user.Role)
 	permissions["admin_permissions"] = authz.Capabilities(user.Id, user.Role)
+
+	// 子账户 / 企业管理员标识
+	isSubAccount := user.IsSubAccount()
+	canManageSubAccounts := model.IsEnterpriseAdmin(user.Id)
+	subAccountCount, _ := model.CountUserSubAccounts(user.Id)
+
+	// 子账户补充所属企业名称
+	parentEnterpriseName := model.GetParentEnterpriseName(user.ParentUserId)
+
 	return map[string]interface{}{
 		"id":                user.Id,
 		"username":          user.Username,
@@ -529,6 +544,7 @@ func buildSelfUserData(user *model.User) map[string]interface{} {
 		"wechat_id":         user.WeChatId,
 		"telegram_id":       user.TelegramId,
 		"group":             user.Group,
+		"cert_status":       user.CertStatus,
 		"quota":             user.Quota,
 		"used_quota":        user.UsedQuota,
 		"request_count":     user.RequestCount,
@@ -542,6 +558,12 @@ func buildSelfUserData(user *model.User) map[string]interface{} {
 		"stripe_customer":   user.StripeCustomer,
 		"sidebar_modules":   userSetting.SidebarModules, // 正确提取sidebar_modules字段
 		"permissions":       permissions,
+		// 企业子账户扩展字段
+		"parent_user_id":         user.ParentUserId,
+		"is_sub_account":         isSubAccount,
+		"can_manage_sub_accounts": canManageSubAccounts,
+		"sub_account_count":      subAccountCount,
+		"parent_enterprise_name": parentEnterpriseName,
 	}
 }
 
@@ -1003,6 +1025,24 @@ func DeleteSelf(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
+	})
+	return
+}
+
+// CleanupDeletedUsers 物理删除所有已注销（软删除）用户及其全部关联数据（管理员操作）
+func CleanupDeletedUsers(c *gin.Context) {
+	cleaned, err := model.CleanupDeletedUsers()
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	recordManageAuditFor(c, 0, "user.cleanup_deleted", map[string]interface{}{
+		"cleaned": cleaned,
+	})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    cleaned,
 	})
 	return
 }

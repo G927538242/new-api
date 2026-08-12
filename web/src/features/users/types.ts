@@ -54,6 +54,7 @@ export const userSchema = z.object({
   linux_do_id: z.string().optional(),
   status: userStatusSchema,
   role: userRoleSchema,
+  cert_status: z.number().optional(),
   created_at: z.number().optional(),
   updated_at: z.number().optional(),
   last_login_at: z.number().optional(),
@@ -111,6 +112,7 @@ export interface SearchUsersParams {
   group?: string
   role?: string
   status?: string
+  cert_status?: string
   p?: number
   page_size?: number
   sort_by?: UserSortBy

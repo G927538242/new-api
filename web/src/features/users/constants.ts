@@ -116,6 +116,47 @@ export const BINDING_FIELDS = [
 ] as const
 
 // ============================================================================
+// Certification Status Configuration
+// ============================================================================
+
+export const CERT_STATUS = {
+  NONE: 0,
+  PENDING: 1,
+  APPROVED: 2,
+  REJECTED: 3,
+} as const
+
+export const CERT_STATUSES = {
+  [CERT_STATUS.NONE]: {
+    labelKey: '未认证',
+    variant: 'neutral' as const,
+    value: CERT_STATUS.NONE,
+  },
+  [CERT_STATUS.PENDING]: {
+    labelKey: '待审核',
+    variant: 'warning' as const,
+    value: CERT_STATUS.PENDING,
+  },
+  [CERT_STATUS.APPROVED]: {
+    labelKey: '已认证',
+    variant: 'success' as const,
+    value: CERT_STATUS.APPROVED,
+  },
+  [CERT_STATUS.REJECTED]: {
+    labelKey: '已驳回',
+    variant: 'danger' as const,
+    value: CERT_STATUS.REJECTED,
+  },
+} as const
+
+export const getCertStatusOptions = (t: (key: string) => string) => [
+  { label: t('未认证'), value: String(CERT_STATUS.NONE) },
+  { label: t('待审核'), value: String(CERT_STATUS.PENDING) },
+  { label: t('已认证'), value: String(CERT_STATUS.APPROVED) },
+  { label: t('已驳回'), value: String(CERT_STATUS.REJECTED) },
+]
+
+// ============================================================================
 // Error Messages (i18n keys: use t(ERROR_MESSAGES.xxx) when displaying)
 // ============================================================================
 

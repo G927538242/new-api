@@ -96,11 +96,13 @@ type User struct {
 	UsedQuota        int                        `json:"used_quota" gorm:"type:int;default:0;column:used_quota"` // used quota
 	RequestCount     int                        `json:"request_count" gorm:"type:int;default:0;"`               // request number
 	Group            string                     `json:"group" gorm:"type:varchar(64);default:'default'"`
+	CertStatus       int                        `json:"cert_status" gorm:"type:int;default:0;column:cert_status"` // 实名认证状态: 0 未认证 / 1 待审核 / 2 已认证 / 3 已驳回
 	AffCode          string                     `json:"aff_code" gorm:"type:varchar(32);column:aff_code;uniqueIndex"`
 	AffCount         int                        `json:"aff_count" gorm:"type:int;default:0;column:aff_count"`
 	AffQuota         int                        `json:"aff_quota" gorm:"type:int;default:0;column:aff_quota"`           // 邀请剩余额度
 	AffHistoryQuota  int                        `json:"aff_history_quota" gorm:"type:int;default:0;column:aff_history"` // 邀请历史额度
 	InviterId        int                        `json:"inviter_id" gorm:"type:int;column:inviter_id;index"`
+	ParentUserId     int                        `json:"parent_user_id" gorm:"type:int;default:0;column:parent_user_id;index"` // 企业子账户的父账户（企业管理员）ID，0 表示独立用户
 	DeletedAt        gorm.DeletedAt             `gorm:"index"`
 	LinuxDOId        string                     `json:"linux_do_id" gorm:"column:linux_do_id;index"`
 	Setting          string                     `json:"setting" gorm:"type:text;column:setting"`
@@ -114,16 +116,18 @@ type User struct {
 
 func (user *User) ToBaseUser() *UserBase {
 	cache := &UserBase{
-		Id:          user.Id,
-		Group:       user.Group,
-		Quota:       user.Quota,
-		Status:      user.Status,
-		Role:        user.Role,
-		Username:    user.Username,
-		Setting:     user.Setting,
-		Email:       user.Email,
-		AuthVersion: user.AuthVersion,
-		CacheSchema: userCacheSchemaVersion,
+		Id:           user.Id,
+		Group:        user.Group,
+		Quota:        user.Quota,
+		Status:       user.Status,
+		Role:         user.Role,
+		Username:     user.Username,
+		Setting:      user.Setting,
+		Email:        user.Email,
+		AuthVersion:  user.AuthVersion,
+		CertStatus:   user.CertStatus,
+		ParentUserId: user.ParentUserId,
+		CacheSchema:  userCacheSchemaVersion,
 	}
 	return cache
 }
@@ -381,7 +385,7 @@ func GetAllUsers(pageInfo *common.PageInfo, sortOptions ...UserSortOptions) (use
 	return users, total, nil
 }
 
-func SearchUsers(keyword string, group string, role *int, status *int, startIdx int, num int, sortOptions ...UserSortOptions) ([]*User, int64, error) {
+func SearchUsers(keyword string, group string, role *int, status *int, certStatus *int, startIdx int, num int, sortOptions ...UserSortOptions) ([]*User, int64, error) {
 	var users []*User
 	var total int64
 	var err error
@@ -425,6 +429,9 @@ func SearchUsers(keyword string, group string, role *int, status *int, startIdx 
 		} else {
 			query = query.Where("deleted_at IS NULL").Where("status = ?", *status)
 		}
+	}
+	if certStatus != nil {
+		query = query.Where("cert_status = ?", *certStatus)
 	}
 
 	// 获取总数
@@ -894,6 +901,9 @@ func (user *User) HardDelete() error {
 		if err := deleteUserAuthenticationData(tx, user.Id); err != nil {
 			return err
 		}
+		if err := deleteUserBusinessData(tx, user.Id); err != nil {
+			return err
+		}
 		return tx.Unscoped().Delete(user).Error
 	})
 	if err != nil {
@@ -909,6 +919,124 @@ func (user *User) HardDelete() error {
 		common.SysError(fmt.Sprintf("failed to invalidate user cache after hard deleting user %d: %v", user.Id, err))
 	}
 	return nil
+}
+
+// deleteUserBusinessData 物理删除用户关联的业务数据（主库表）。
+// 认证/会话类数据由 deleteUserAuthenticationData 处理。
+func deleteUserBusinessData(tx *gorm.DB, userId int) error {
+	// 兑换码：创建者或使用者为该用户
+	if err := tx.Unscoped().Where("user_id = ? OR used_user_id = ?", userId, userId).Delete(&Redemption{}).Error; err != nil {
+		return err
+	}
+	for _, m := range []any{
+		&SubscriptionOrder{},
+		&UserSubscription{},
+		&SubscriptionPreConsumeRecord{},
+		&TopUp{},
+		&Task{},
+		&Midjourney{},
+		&Asset{},
+		&AssetGroup{},
+		&UserCertification{},
+		&Checkin{},
+	} {
+		if err := tx.Unscoped().Where("user_id = ?", userId).Delete(m).Error; err != nil {
+			return err
+		}
+	}
+	// 用量看板数据
+	if err := tx.Unscoped().Table("quota_data").Where("user_id = ?", userId).Delete(nil).Error; err != nil {
+		return err
+	}
+	// 日志表（主库为日志库时随事务删除；独立日志库在事务外处理）
+	if LOG_DB == DB {
+		if err := tx.Unscoped().Where("user_id = ?", userId).Delete(&Log{}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// hardDeleteUserWithAllData 事务内物理删除单个用户及其全部关联数据。
+func hardDeleteUserWithAllData(userId int) error {
+	if userId == 0 {
+		return errors.New("id 为空！")
+	}
+	var tokens []Token
+	var deletedAuthVersion int64
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		var err error
+		deletedAuthVersion, err = IncrementUserAuthVersionWithTx(tx, userId)
+		if err != nil {
+			return err
+		}
+		if common.RedisEnabled {
+			if err := tx.Unscoped().Select("id", commonKeyCol).Where("user_id = ?", userId).Find(&tokens).Error; err != nil {
+				return err
+			}
+		}
+		if err := deleteUserAuthenticationData(tx, userId); err != nil {
+			return err
+		}
+		if err := deleteUserBusinessData(tx, userId); err != nil {
+			return err
+		}
+		return tx.Unscoped().Delete(&User{Id: userId}).Error
+	})
+	if err != nil {
+		return err
+	}
+	// 独立日志库（非主库）的日志删除，失败仅记录
+	if LOG_DB != nil && LOG_DB != DB {
+		if err := LOG_DB.Unscoped().Where("user_id = ?", userId).Delete(&Log{}).Error; err != nil {
+			common.SysError(fmt.Sprintf("failed to delete logs for user %d: %v", userId, err))
+		}
+	}
+	if err := publishCommittedUserAuthVersion(userId, deletedAuthVersion); err != nil {
+		common.SysError(fmt.Sprintf("failed to publish auth tombstone after cleaning user %d: %v", userId, err))
+	}
+	if err := invalidateTokensCache(tokens); err != nil {
+		common.SysError(fmt.Sprintf("failed to invalidate token cache after cleaning user %d: %v", userId, err))
+	}
+	if err := invalidateUserCache(userId); err != nil {
+		common.SysError(fmt.Sprintf("failed to invalidate user cache after cleaning user %d: %v", userId, err))
+	}
+	return nil
+}
+
+// CleanupDeletedUsers 物理删除所有已注销（软删除）用户及其子账户的全部关联数据，返回清理数量。
+func CleanupDeletedUsers() (int, error) {
+	var deletedIds []int
+	if err := DB.Unscoped().Model(&User{}).Where("deleted_at IS NOT NULL").Pluck("id", &deletedIds).Error; err != nil {
+		return 0, err
+	}
+	if len(deletedIds) == 0 {
+		return 0, nil
+	}
+	// 收集这些用户下的子账户，一并清理
+	var subIds []int
+	if err := DB.Unscoped().Model(&User{}).Where("parent_user_id IN ?", deletedIds).Pluck("id", &subIds).Error; err != nil {
+		return 0, err
+	}
+	ids := append(deletedIds, subIds...)
+	seen := make(map[int]bool, len(ids))
+	unique := make([]int, 0, len(ids))
+	for _, id := range ids {
+		if !seen[id] {
+			seen[id] = true
+			unique = append(unique, id)
+		}
+	}
+
+	cleaned := 0
+	for _, id := range unique {
+		if err := hardDeleteUserWithAllData(id); err != nil {
+			common.SysError(fmt.Sprintf("failed to cleanup deleted user %d: %v", id, err))
+			continue
+		}
+		cleaned++
+	}
+	return cleaned, nil
 }
 
 func deleteUserAuthenticationData(tx *gorm.DB, userId int) error {

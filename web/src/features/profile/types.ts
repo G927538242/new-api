@@ -53,6 +53,8 @@ export interface UserProfile {
   request_count: number
   /** Account status (1=启用, 2=禁用, 3=待审核, 4=已删除) */
   status: number
+  /** Certification status (0=未认证, 1=待审核, 2=已认证, 3=已驳回) */
+  cert_status?: number
   /** Access token (system token) */
   access_token?: string
   /** Affiliate code */
@@ -69,6 +71,12 @@ export interface UserProfile {
   created_time: number
   /** User settings (JSON string) */
   setting?: string
+  /** Parent user ID (0 for independent users, >0 for sub-accounts) */
+  parent_user_id?: number
+  /** Whether this user is a sub-account under an enterprise */
+  is_sub_account?: boolean
+  /** Parent enterprise name (populated for sub-accounts) */
+  parent_enterprise_name?: string
   /** WeChat ID (OAuth) */
   wechat_id?: string
   /** GitHub ID (OAuth) */

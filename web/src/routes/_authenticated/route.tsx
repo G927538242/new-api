@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { createFileRoute, redirect } from '@tanstack/react-router'
 
 import { AuthenticatedLayout } from '@/components/layout'
+import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
 export const Route = createFileRoute('/_authenticated')({
@@ -29,6 +30,16 @@ export const Route = createFileRoute('/_authenticated')({
       throw redirect({
         to: '/sign-in',
         search: { redirect: location.href },
+      })
+    }
+
+    // 实名认证强制：普通用户必须完成认证后才能使用系统（管理员豁免）
+    const isAdmin = auth.user.role >= ROLE.ADMIN
+    const certified = (auth.user.cert_status ?? 0) === 2
+    const onCertificationPage = location.pathname === '/certification'
+    if (!isAdmin && !certified && !onCertificationPage) {
+      throw redirect({
+        to: '/certification',
       })
     }
   },

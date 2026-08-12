@@ -38,7 +38,11 @@ import {
 } from '@/components/ui/tooltip'
 
 import { getAssetGroups, uploadAsset } from '../api'
-import { ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants'
+import {
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES,
+  getAssetModelOptions,
+} from '../constants'
 import { useAssets } from './assets-provider'
 
 export function AssetsPrimaryButtons() {
@@ -54,6 +58,9 @@ export function AssetsPrimaryButtons() {
   } = useAssets()
   const inputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [selectedModel, setSelectedModel] = useState<string>('')
+
+  const modelOptions = getAssetModelOptions(t)
 
   const { data: groupsData } = useQuery({
     queryKey: ['asset-groups', groupsRefreshTrigger],
@@ -86,7 +93,7 @@ export function AssetsPrimaryButtons() {
     setIsUploading(true)
     try {
       const results = await Promise.allSettled(
-        [...files].map((file) => uploadAsset(file, currentGroupId ?? undefined))
+        [...files].map((file) => uploadAsset(file, currentGroupId ?? undefined, selectedModel || undefined))
       )
       const fulfilled = results.filter(
         (r) => r.status === 'fulfilled' && r.value.success
@@ -196,6 +203,26 @@ export function AssetsPrimaryButtons() {
           </Tooltip>
         </>
       )}
+
+      {/* 模型选择（上传时关联模型） */}
+      <Select
+        value={selectedModel}
+        onValueChange={(value) => setSelectedModel(value || '')}
+      >
+        <SelectTrigger size='sm' className='w-[140px]'>
+          <SelectValue placeholder={t('Choose Model')} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            <SelectItem value=''>{t('No model association')}</SelectItem>
+            {modelOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
 
       {/* 上传素材 */}
       <Button
