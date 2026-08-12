@@ -8,7 +8,7 @@ import { tanstackRouter } from '@tanstack/router-plugin/rspack'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-const DEV_PORT = 3000
+const DEV_PORT = 5173
 
 export default defineConfig(({ envMode }) => {
   const env = loadEnv({ mode: envMode, prefixes: ['VITE_'] })
@@ -83,7 +83,7 @@ export default defineConfig(({ envMode }) => {
     },
     server: {
       host: '0.0.0.0',
-      port: 3000,
+      port: 5173,
       strictPort: true,
       proxy: devProxy,
     },
