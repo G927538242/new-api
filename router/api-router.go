@@ -31,6 +31,7 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/about", controller.GetAbout)
 		//apiRouter.GET("/midjourney", controller.GetMidjourney)
 		apiRouter.GET("/home_page_content", controller.GetHomePageContent)
+		apiRouter.GET("/home/pricing", controller.GetHomePricing)
 		apiRouter.GET("/pricing", middleware.HeaderNavModuleAuth("pricing"), controller.GetPricing)
 		perfMetricsRoute := apiRouter.Group("/perf-metrics")
 		perfMetricsRoute.Use(middleware.HeaderNavModulePublicOrUserAuth("pricing"))
@@ -127,6 +128,25 @@ func SetApiRouter(router *gin.Engine) {
 				// Custom OAuth bindings
 				selfRoute.GET("/oauth/bindings", controller.GetUserOAuthBindings)
 				selfRoute.DELETE("/oauth/bindings/:provider_id", controller.UnbindCustomOAuth)
+
+				// 实名认证（个人/企业）
+				selfRoute.GET("/certification", controller.GetMyCertification)
+				selfRoute.POST("/certification", controller.SubmitCertification)
+				selfRoute.POST("/certification/upload", controller.UploadCertificationFile)
+
+				// 企业子账户管理（仅企业认证客户可用，权限校验在 controller 内完成）
+				subAccountRoute := userRoute.Group("/sub-accounts")
+				subAccountRoute.Use(middleware.UserAuth())
+				{
+					// 同时注册空路径与斜杠路径，避免 Gin 对无尾斜杠请求做 301 重定向导致 POST body 丢失
+					subAccountRoute.GET("", controller.ListSubAccounts)
+					subAccountRoute.POST("", controller.CreateSubAccount)
+					subAccountRoute.GET("/", controller.ListSubAccounts)
+					subAccountRoute.POST("/", controller.CreateSubAccount)
+					subAccountRoute.GET("/:id", controller.GetSubAccount)
+					subAccountRoute.PUT("/:id", controller.UpdateSubAccount)
+					subAccountRoute.POST("/:id/manage", controller.ManageSubAccount)
+				}
 			}
 
 			adminRoute := userRoute.Group("/")
@@ -144,6 +164,7 @@ func SetApiRouter(router *gin.Engine) {
 				adminRoute.POST("/manage", controller.ManageUser)
 				adminRoute.PUT("/", controller.UpdateUser)
 				adminRoute.DELETE("/:id", controller.DeleteUser)
+				adminRoute.POST("/cleanup-deleted", controller.CleanupDeletedUsers)
 				adminRoute.DELETE("/:id/reset_passkey", controller.AdminResetPasskey)
 
 				// Admin 2FA routes
@@ -235,6 +256,7 @@ func SetApiRouter(router *gin.Engine) {
 		registerAuthzRoutes(apiRouter)
 		tokenRoute := apiRouter.Group("/token")
 		tokenRoute.Use(middleware.UserAuth())
+		tokenRoute.Use(middleware.RequireCertification())
 		{
 			tokenRoute.GET("/", controller.GetAllTokens)
 			tokenRoute.GET("/search", middleware.SearchRateLimit(), controller.SearchTokens)
@@ -271,6 +293,17 @@ func SetApiRouter(router *gin.Engine) {
 
 		// 本地存储素材文件访问（通配符路由单独注册，避免与 :id 冲突）
 		apiRouter.GET("/asset/file/*key", middleware.UserAuth(), controller.ServeAssetFile)
+
+		// 认证证件图片访问（仅本人或管理员，通配符路由单独注册）
+		apiRouter.GET("/certification/file/*key", middleware.UserAuth(), controller.ServeCertificationFile)
+		// 认证管理（后台用户审核）
+		certAdminRoute := apiRouter.Group("/certification")
+		certAdminRoute.Use(middleware.AdminAuth())
+		{
+			certAdminRoute.GET("/list", controller.AdminListCertifications)
+			certAdminRoute.GET("/:id", controller.AdminGetCertification)
+			certAdminRoute.POST("/review", controller.AdminReviewCertification)
+		}
 
 		usageRoute := apiRouter.Group("/usage")
 		usageRoute.Use(middleware.CORS(), middleware.CriticalRateLimit())
