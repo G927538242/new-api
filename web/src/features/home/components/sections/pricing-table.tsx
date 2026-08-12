@@ -17,15 +17,45 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
+
+import { api } from '@/lib/api'
 
 interface PricingTableProps {
   className?: string
 }
 
-export function PricingTable(_props: PricingTableProps) {
-  const { t } = useTranslation()
+interface HomePricingRowPayload {
+  model: string
+  modality: string
+  input_per_million: number
+  output_per_million: number
+  cache_per_million: number
+  context_window: string
+}
 
-  const rows = [
+interface HomePricingResponse {
+  success: boolean
+  message?: string
+  data?: HomePricingRowPayload[] | null
+  currency_symbol?: string | null
+}
+
+interface PricingTableRow {
+  model: string
+  modality: string
+  input: string
+  output: string
+  cache: string
+  context: string
+}
+
+const DEFAULT_CURRENCY_SYMBOL = '¥'
+const MODALITY_TEXT = 'text'
+const MODALITY_TEXT_IMAGE = 'text+image'
+
+function getDefaultRows(t: (key: string) => string): PricingTableRow[] {
+  return [
     {
       model: 'DeepSeek V3',
       modality: t('home.pricing.modality.text'),
@@ -75,6 +105,89 @@ export function PricingTable(_props: PricingTableProps) {
       context: '128K',
     },
   ]
+}
+
+function formatPrice(value: number, symbol: string): string {
+  if (!isFinite(value) || value < 0) {
+    return `${symbol}0`
+  }
+  if (value === 0) {
+    return `${symbol}0`
+  }
+  let formatted: string
+  if (value >= 1) {
+    formatted = value.toFixed(2)
+    if (formatted.endsWith('.00')) {
+      formatted = formatted.slice(0, -3)
+    } else if (formatted.endsWith('0')) {
+      formatted = formatted.slice(0, -1)
+    }
+  } else if (value >= 0.01) {
+    formatted = value.toFixed(2)
+  } else {
+    formatted = value.toFixed(4)
+  }
+  return `${symbol}${formatted}`
+}
+
+function mapModality(raw: string, t: (key: string) => string): string {
+  const lower = (raw || '').toLowerCase()
+  if (lower.includes('image') || lower.includes('vision') || lower === MODALITY_TEXT_IMAGE) {
+    return t('home.pricing.modality.textImage')
+  }
+  return t('home.pricing.modality.text')
+}
+
+export function PricingTable(_props: PricingTableProps) {
+  const { t } = useTranslation()
+
+  const { data } = useQuery<HomePricingResponse | null>({
+    queryKey: ['home-pricing'],
+    queryFn: async () => {
+      try {
+        const res = await api.get('/api/home/pricing', {
+          skipBusinessError: true,
+        } as any)
+        const body = res?.data as HomePricingResponse | undefined
+        if (!body || typeof body !== 'object') return null
+        return body
+      } catch {
+        return null
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: (failureCount, error: any) => {
+      // Only retry transient errors; don't retry if route is missing or misconfigured.
+      if (failureCount >= 1) return false
+      const status = error?.response?.status
+      if (status === 404 || status === 405 || status >= 500) return false
+      return true
+    },
+  })
+
+  const currencySymbol =
+    typeof data?.currency_symbol === 'string' && data.currency_symbol.trim() !== ''
+      ? data.currency_symbol
+      : DEFAULT_CURRENCY_SYMBOL
+
+  let rows: PricingTableRow[]
+  const serverRows =
+    Array.isArray(data?.data) && data && (data.data as HomePricingRowPayload[]).length > 0
+      ? (data.data as HomePricingRowPayload[])
+      : null
+
+  if (serverRows) {
+    rows = serverRows.map<PricingTableRow>((r) => ({
+      model: r.model ?? '',
+      modality: mapModality(r.modality ?? MODALITY_TEXT, t),
+      input: formatPrice(r.input_per_million ?? 0, currencySymbol),
+      output: formatPrice(r.output_per_million ?? 0, currencySymbol),
+      cache: formatPrice(r.cache_per_million ?? 0, currencySymbol),
+      context: r.context_window ?? '',
+    }))
+  } else {
+    rows = getDefaultRows(t)
+  }
 
   return (
     <section className='border-t border-border bg-transparent py-28 md:py-36'>

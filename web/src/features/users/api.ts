@@ -63,6 +63,7 @@ export async function searchUsers(
     group = '',
     role = '',
     status = '',
+    cert_status = '',
     p = 1,
     page_size = 10,
     sort_by,
@@ -73,6 +74,7 @@ export async function searchUsers(
   queryParams.set('group', group)
   if (role) queryParams.set('role', role)
   if (status) queryParams.set('status', status)
+  if (cert_status) queryParams.set('cert_status', cert_status)
   queryParams.set('p', String(p))
   queryParams.set('page_size', String(page_size))
   if (sort_by) queryParams.set('sort_by', sort_by)
@@ -114,6 +116,14 @@ export async function updateUser(
  */
 export async function deleteUser(id: number): Promise<ApiResponse> {
   const res = await api.delete(`/api/user/${id}/`)
+  return res.data
+}
+
+/**
+ * Permanently delete all deleted (deactivated) users and their related data
+ */
+export async function cleanupDeletedUsers(): Promise<ApiResponse<number>> {
+  const res = await api.post('/api/user/cleanup-deleted')
   return res.data
 }
 

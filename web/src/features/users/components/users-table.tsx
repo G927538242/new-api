@@ -37,6 +37,7 @@ import {
   USER_STATUS,
   getUserStatusOptions,
   getUserRoleOptions,
+  getCertStatusOptions,
   isUserDeleted,
 } from '../constants'
 import type { User, UserSortBy } from '../types'
@@ -82,6 +83,7 @@ export function UsersTable() {
     columnFilters: [
       { columnId: 'status', searchKey: 'status', type: 'array' },
       { columnId: 'role', searchKey: 'role', type: 'array' },
+      { columnId: 'cert_status', searchKey: 'cert_status', type: 'array' },
       { columnId: 'group', searchKey: 'group', type: 'string' },
     ],
   })
@@ -91,6 +93,10 @@ export function UsersTable() {
       | undefined) ?? []
   const roleFilter =
     (columnFilters.find((filter) => filter.id === 'role')?.value as
+      | string[]
+      | undefined) ?? []
+  const certStatusFilter =
+    (columnFilters.find((filter) => filter.id === 'cert_status')?.value as
       | string[]
       | undefined) ?? []
   const groupFilter =
@@ -128,6 +134,7 @@ export function UsersTable() {
       globalFilter,
       statusFilter,
       roleFilter,
+      certStatusFilter,
       groupFilter,
       sortParams,
       refreshTrigger,
@@ -135,7 +142,10 @@ export function UsersTable() {
     queryFn: async () => {
       const hasFilter = globalFilter?.trim()
       const hasColumnFilter =
-        statusFilter.length > 0 || roleFilter.length > 0 || Boolean(groupFilter)
+        statusFilter.length > 0 ||
+        roleFilter.length > 0 ||
+        certStatusFilter.length > 0 ||
+        Boolean(groupFilter)
       const params = {
         p: pagination.pageIndex + 1,
         page_size: pagination.pageSize,
@@ -149,6 +159,7 @@ export function UsersTable() {
               keyword: globalFilter,
               status: statusFilter[0] ?? '',
               role: roleFilter[0] ?? '',
+              cert_status: certStatusFilter[0] ?? '',
               group: groupFilter,
             })
           : await getUsers(params)
@@ -228,6 +239,12 @@ export function UsersTable() {
             columnId: 'role',
             title: t('Role'),
             options: getUserRoleOptions(t),
+            singleSelect: true,
+          },
+          {
+            columnId: 'cert_status',
+            title: t('认证状态'),
+            options: getCertStatusOptions(t),
             singleSelect: true,
           },
         ],

@@ -33,6 +33,7 @@ export interface AuthUser {
   email?: string
   role: number
   status?: number
+  cert_status?: number
   group?: string
   quota?: number
   used_quota?: number
@@ -53,6 +54,11 @@ export interface AuthUser {
   stripe_customer?: string
   sidebar_modules?: string
   permissions?: UserPermissions
+  /** 企业子账户扩展字段 */
+  parent_user_id?: number
+  is_sub_account?: boolean
+  can_manage_sub_accounts?: boolean
+  sub_account_count?: number
 }
 
 export interface LoginSession {

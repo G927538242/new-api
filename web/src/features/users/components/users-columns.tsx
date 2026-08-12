@@ -36,6 +36,7 @@ import {
   USER_STATUS,
   USER_STATUSES,
   USER_ROLES,
+  CERT_STATUSES,
   isUserDeleted,
 } from '../constants'
 import type { User } from '../types'
@@ -217,6 +218,30 @@ export function useUsersColumns(): ColumnDef<User>[] {
       enableSorting: false,
       size: 120,
       meta: { mobileOrder: 20 },
+    },
+    {
+      accessorKey: 'cert_status',
+      header: t('认证状态'),
+      cell: ({ row }) => {
+        const certStatus = row.original.cert_status ?? 0
+        const config = CERT_STATUSES[certStatus as keyof typeof CERT_STATUSES]
+        if (!config) {
+          return null
+        }
+        return (
+          <StatusBadge
+            label={t(config.labelKey)}
+            variant={config.variant}
+            copyable={false}
+          />
+        )
+      },
+      filterFn: (row, _id, value) => {
+        return value.includes(String(row.original.cert_status ?? 0))
+      },
+      enableSorting: false,
+      size: 120,
+      meta: { mobileOrder: 25 },
     },
     {
       id: 'invite_info',

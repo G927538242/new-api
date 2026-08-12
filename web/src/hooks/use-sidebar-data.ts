@@ -30,6 +30,7 @@ import {
   Radio,
   ServerCog,
   Settings,
+  ShieldCheck,
   Ticket,
   User,
   Users,
@@ -39,6 +40,7 @@ import { useTranslation } from 'react-i18next'
 
 import type { SidebarData } from '@/components/layout/types'
 import { ROLE } from '@/lib/roles'
+import { useAuthStore } from '@/stores/auth-store'
 
 /**
  * Root navigation groups for the application sidebar.
@@ -48,6 +50,8 @@ import { ROLE } from '@/lib/roles'
  */
 export function useSidebarData(): SidebarData {
   const { t } = useTranslation()
+  const canManageSubAccounts =
+    useAuthStore((s) => s.auth.user?.can_manage_sub_accounts) === true
 
   return {
     navGroups: [
@@ -114,6 +118,15 @@ export function useSidebarData(): SidebarData {
             url: '/wallet',
             icon: Wallet,
           },
+          ...(canManageSubAccounts
+            ? [
+                {
+                  title: t('Sub-accounts'),
+                  url: '/sub-accounts',
+                  icon: Users,
+                },
+              ]
+            : []),
           {
             title: t('Profile'),
             url: '/profile',
@@ -139,6 +152,11 @@ export function useSidebarData(): SidebarData {
             title: t('Users'),
             url: '/users',
             icon: Users,
+          },
+          {
+            title: t('Certification Review'),
+            url: '/admin/certifications',
+            icon: ShieldCheck,
           },
           {
             title: t('Redemption Codes'),

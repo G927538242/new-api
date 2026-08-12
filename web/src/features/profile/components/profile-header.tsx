@@ -19,6 +19,8 @@ For commercial licensing, please contact support@quantumnous.com
 import { Activity, BarChart3, WalletCards } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
+import { CERT_STATUS, CERT_STATUSES } from '@/features/users/constants'
+
 import { StatusBadge } from '@/components/status-badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Card, CardContent } from '@/components/ui/card'
@@ -84,6 +86,8 @@ export function ProfileHeader({ profile, loading }: ProfileHeaderProps) {
   const avatarFallback = getUserAvatarFallback(avatarName)
   const avatarFallbackStyle = getUserAvatarStyle(avatarName)
   const roleLabel = getRoleLabel(profile.role)
+  const certStatus = profile.cert_status ?? CERT_STATUS.NONE
+  const certConfig = CERT_STATUSES[certStatus as keyof typeof CERT_STATUSES]
   const stats: {
     label: string
     value: string
@@ -137,6 +141,13 @@ export function ProfileHeader({ profile, loading }: ProfileHeaderProps) {
                 variant='neutral'
                 copyable={false}
               />
+              {certConfig && profile.role < 10 && (
+                <StatusBadge
+                  label={t(certConfig.labelKey)}
+                  variant={certConfig.variant}
+                  copyable={false}
+                />
+              )}
               <StatusBadge
                 label={`${t('User ID')} ${profile.id}`}
                 variant='info'

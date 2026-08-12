@@ -53,6 +53,8 @@ export interface UserProfile {
   request_count: number
   /** Account status (1=启用, 2=禁用, 3=待审核, 4=已删除) */
   status: number
+  /** Certification status (0=未认证, 1=待审核, 2=已认证, 3=已驳回) */
+  cert_status?: number
   /** Access token (system token) */
   access_token?: string
   /** Affiliate code */

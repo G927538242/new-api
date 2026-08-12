@@ -17,32 +17,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import z from 'zod'
 
-import { Users } from '@/features/users'
+import { CertificationAdminPage } from '@/features/certification/admin'
 import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
-const usersSearchSchema = z.object({
-  page: z.number().optional().catch(1),
-  pageSize: z.number().optional().catch(undefined),
-  filter: z.string().optional().catch(''),
-  status: z
-    .array(z.enum(['-1', '1', '2']))
-    .optional()
-    .catch([]),
-  role: z
-    .array(z.enum(['1', '10', '100']))
-    .optional()
-    .catch([]),
-  cert_status: z
-    .array(z.enum(['0', '1', '2', '3']))
-    .optional()
-    .catch([]),
-  group: z.string().optional().catch(''),
-})
-
-export const Route = createFileRoute('/_authenticated/users/')({
+export const Route = createFileRoute('/_authenticated/admin/certifications/')({
   beforeLoad: () => {
     const { auth } = useAuthStore.getState()
 
@@ -52,6 +32,5 @@ export const Route = createFileRoute('/_authenticated/users/')({
       })
     }
   },
-  validateSearch: usersSearchSchema,
-  component: Users,
+  component: CertificationAdminPage,
 })
