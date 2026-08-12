@@ -101,12 +101,16 @@ export async function getAsset(id: number): Promise<ApiResponse<Asset>> {
 // Upload an asset (multipart/form-data, field name "file")
 export async function uploadAsset(
   file: File,
-  groupId?: number
+  groupId?: number,
+  model?: string
 ): Promise<ApiResponse<Asset>> {
   const formData = new FormData()
   formData.append('file', file)
   if (groupId !== undefined && groupId !== null) {
     formData.append('group_id', String(groupId))
+  }
+  if (model) {
+    formData.append('model', model)
   }
   const res = await api.post('/api/asset/', formData, {
     headers: {
@@ -119,7 +123,7 @@ export async function uploadAsset(
 
 // Delete an asset
 export async function deleteAsset(id: number): Promise<ApiResponse> {
-  const res = await api.delete(`/api/asset/${id}/`, {
+  const res = await api.delete(`/api/asset/${id}`, {
     skipBusinessError: true,
   })
   return res.data

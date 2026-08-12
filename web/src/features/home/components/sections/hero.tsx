@@ -1,23 +1,5 @@
-/*
-Copyright (C) 2023-2026 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
 import { Link } from '@tanstack/react-router'
-import { ArrowRight, BookOpen, Terminal } from 'lucide-react'
+import { ArrowRight, Terminal, BookOpen, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
@@ -29,126 +11,108 @@ interface HeroProps {
   isAuthenticated?: boolean
 }
 
-const renderOpenApiButton = (isAuthenticated: boolean, t: (k: string) => string) => {
-  const to = isAuthenticated ? '/playground' : '/sign-in'
-  return (
-    <Button
-      variant='outline'
-      className='h-11 rounded-md border-sky-200/60 bg-sky-50/60 px-5 text-sm font-medium text-sky-700 backdrop-blur-sm hover:bg-sky-100/70 hover:text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200 dark:hover:bg-sky-500/20'
-      render={<Link to={to} />}
-    >
-      <Terminal className='mr-1.5 size-4' />
-      <span>{t('Open API')}</span>
-    </Button>
-  )
-}
-
 export function Hero(props: HeroProps) {
   const { t } = useTranslation()
-  const docsUrl = '/docs'
-  const renderDocsButton = () => {
-    return (
-      <Button
-        variant='outline'
-        className='h-11 rounded-md border-sky-200/60 bg-sky-50/60 px-5 text-sm font-medium text-sky-700 backdrop-blur-sm hover:bg-sky-100/70 hover:text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200 dark:hover:bg-sky-500/20'
-        render={<Link to={docsUrl} />}
-      >
-        <BookOpen className='mr-1.5 size-4' />
-        <span>{t('Docs')}</span>
-      </Button>
-    )
-  }
+
+  const primaryCta = props.isAuthenticated ? (
+    <Button
+      className='h-12 rounded-lg border-0 bg-foreground px-7 text-[14px] font-semibold text-background shadow-lg shadow-foreground/10 transition-all hover:scale-[1.02] hover:bg-foreground/90'
+      render={<Link to='/dashboard' />}
+    >
+      {t('Go to Dashboard')}
+      <ArrowRight className='ml-2 size-4' />
+    </Button>
+  ) : (
+    <Button
+      className='h-12 rounded-lg border-0 bg-foreground px-7 text-[14px] font-semibold text-background shadow-lg shadow-foreground/10 transition-all hover:scale-[1.02] hover:bg-foreground/90'
+      render={<Link to='/sign-up' />}
+    >
+      {t('Get Started')}
+      <ArrowRight className='ml-2 size-4' />
+    </Button>
+  )
 
   return (
-    <section className='relative z-10 bg-transparent px-6 pt-24 pb-16 md:pt-28 md:pb-20 lg:pt-32 lg:pb-28'>
-      <div className='mx-auto max-w-[1100px] px-6'>
-        <div className='grid grid-cols-1 items-start gap-12 lg:grid-cols-12 lg:gap-10'>
-          <div className='flex flex-col items-start text-left lg:col-span-6'>
-            <div className='home-fade-in-up w-full' style={{ animationDelay: '0ms' }}>
-              <h1 className='text-[clamp(2.5rem,5.5vw,4rem)] leading-[1.05] font-semibold tracking-[-0.02em]'>
-                {t('home.hero.title')}
-                <br />
-                <span className='bg-gradient-to-br from-foreground/90 via-foreground/95 to-foreground/92 bg-clip-text text-transparent'>
-                  {t('home.hero.titleHighlight')}
-                </span>
-              </h1>
-            </div>
+    <section className='relative overflow-hidden px-6 pt-32 pb-24 md:pt-40 md:pb-32 lg:pt-48 lg:pb-40'>
+      {/* Decorative elements */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute top-0 left-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/[0.03] blur-3xl dark:bg-foreground/[0.04]" />
+        <div className="absolute top-40 right-0 h-[300px] w-[300px] translate-x-1/4 rounded-full bg-foreground/[0.02] blur-3xl dark:bg-foreground/[0.03]" />
+      </div>
 
-            <p
-              className='home-fade-in-up mt-6 max-w-2xl text-[15px] leading-7 text-muted-foreground opacity-0'
-              style={{ animationDelay: '80ms' }}
-            >
+      <div className='relative mx-auto max-w-[1200px] px-6'>
+        {/* Top badge */}
+        <div className='home-reveal-up mb-12 flex justify-center' style={{ animationDelay: '0ms' }}>
+          <Link
+            to={props.isAuthenticated ? '/playground' : '/sign-in'}
+            className='group inline-flex items-center gap-2 rounded-full border border-border bg-background/50 px-4 py-1.5 text-[12px] font-medium text-muted-foreground backdrop-blur-sm transition-all hover:border-foreground/30 hover:bg-background hover:text-foreground'
+          >
+            <Sparkles className="size-3.5 text-foreground/60 transition-transform group-hover:scale-110" />
+            <span>API 在线体验 · 支持 50+ 主流模型</span>
+            <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+          </Link>
+        </div>
+
+        {/* Main hero content */}
+        <div className='flex flex-col items-center text-center'>
+          <div className='home-reveal-up' style={{ animationDelay: '80ms' }}>
+            <h1 className='text-[clamp(2.8rem,6vw,5rem)] leading-[1.05] font-semibold tracking-tight text-foreground'>
+              <span className="block">{t('home.hero.title')}</span>
+              <span className="home-shimmer-text block text-foreground/60">{t('home.hero.titleHighlight')}</span>
+            </h1>
+          </div>
+
+          <div className='home-reveal-up mt-8 max-w-2xl' style={{ animationDelay: '160ms' }}>
+            <p className='text-[17px] leading-7 text-muted-foreground'>
               {t('home.hero.subtitle')}
             </p>
+          </div>
 
-            <div
-              className='home-fade-in-up mt-9 flex flex-wrap items-center gap-3 opacity-0'
-              style={{ animationDelay: '160ms' }}
-            >
-              {props.isAuthenticated ? (
-                <>
-                  <Button
-                    className='h-11 rounded-md bg-foreground px-6 text-sm font-medium text-background hover:bg-foreground/90'
-                    render={<Link to='/dashboard' />}
-                  >
-                    {t('Go to Dashboard')}
-                    <ArrowRight className='ml-1.5 size-4' />
-                  </Button>
-                  {renderOpenApiButton(true, t)}
-                  {renderDocsButton()}
-                </>
-              ) : (
-                <>
-                  <Button
-                    className='h-11 rounded-md bg-foreground px-6 text-sm font-medium text-background hover:bg-foreground/90'
-                    render={<Link to='/sign-up' />}
-                  >
-                    {t('Get Started')}
-                    <ArrowRight className='ml-1.5 size-4' />
-                  </Button>
-                  {renderOpenApiButton(false, t)}
-                  <Button
-                    variant='outline'
-                    className='h-11 rounded-md border-sky-200/60 bg-sky-50/60 px-5 text-sm font-medium text-sky-700 backdrop-blur-sm hover:bg-sky-100/70 hover:text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-200 dark:hover:bg-sky-500/20'
-                    render={<Link to='/pricing' />}
-                  >
-                    {t('home.hero.exploreModels')}
-                  </Button>
-                  {renderDocsButton()}
-                </>
-              )}
+          <div className='home-reveal-up mt-10 flex flex-col items-center gap-4 sm:flex-row sm:gap-6' style={{ animationDelay: '240ms' }}>
+            {primaryCta}
+            <div className='flex items-center gap-5'>
+              <Link
+                to={props.isAuthenticated ? '/playground' : '/sign-in'}
+                className='inline-flex items-center gap-2 rounded-lg border border-border px-5 py-3 text-[14px] font-medium text-foreground transition-all hover:border-foreground/40 hover:bg-foreground/5'
+              >
+                <Terminal className='size-4' />
+                <span>{t('Open API')}</span>
+              </Link>
+              <Link
+                to='/docs'
+                className='inline-flex items-center gap-2 text-[14px] font-medium text-muted-foreground transition-colors hover:text-foreground'
+              >
+                <BookOpen className='size-4' />
+                <span>{t('Docs')}</span>
+              </Link>
             </div>
           </div>
 
-          <div
-            className='home-fade-in-up flex w-full justify-center opacity-0 lg:col-span-6'
-            style={{ animationDelay: '240ms' }}
-          >
-            <div className='mt-8 scale-[0.92] origin-top-left lg:mt-0'>
-              <HeroTerminalDemo />
-            </div>
+          {/* Stats */}
+          <div className='home-reveal-up mt-14 flex flex-wrap items-center justify-center gap-x-10 gap-y-4' style={{ animationDelay: '320ms' }}>
+            {[
+              { val: '50+', label: t('home.stats.providers') },
+              { val: '200+', label: t('home.stats.models') },
+              { val: '99.9%', label: t('home.stats.uptime') },
+              { val: '11', label: t('home.stats.routes') },
+            ].map((s) => (
+              <div key={s.label} className='flex flex-col items-center'>
+                <div className='text-2xl font-semibold tracking-tight text-foreground'>
+                  {s.val}
+                </div>
+                <div className='mt-1 text-[11px] tracking-wide text-muted-foreground'>
+                  {s.label}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div
-          className='home-fade-in-up mx-auto mt-20 grid grid-cols-2 gap-8 opacity-0 md:mt-24 md:grid-cols-4'
-          style={{ animationDelay: '320ms' }}
-        >
-          {[
-            { val: '50+', label: t('home.stats.providers') },
-            { val: '200+', label: t('home.stats.models') },
-            { val: '99.9%', label: t('home.stats.uptime') },
-            { val: '50+', label: t('home.stats.routes') },
-          ].map((s) => (
-            <div key={s.label} className='flex flex-col items-start'>
-              <div className='text-2xl font-semibold tracking-tight'>
-                {s.val}
-              </div>
-              <div className='mt-1 text-[12px] text-muted-foreground'>
-                {s.label}
-              </div>
-            </div>
-          ))}
+        {/* API Demo Card */}
+        <div className='home-reveal-scale mt-16 flex justify-center' style={{ animationDelay: '400ms' }}>
+          <div className='home-float w-full max-w-lg'>
+            <HeroTerminalDemo />
+          </div>
         </div>
       </div>
     </section>

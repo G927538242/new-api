@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 
-import { getCertifications, reviewCertification } from '../api'
+import { getCertificationDetail, getCertifications, reviewCertification } from '../api'
 import {
   ADMIN_STATUS_OPTIONS,
   CERT_RECORD_STATUS_BADGE_VARIANTS,
@@ -45,12 +45,6 @@ import {
 } from '../constants'
 import type { AdminCertItem } from '../types'
 import { CertImage } from '../components/certification-upload'
-
-/** 证件号脱敏：保留前 3 后 4 */
-function maskIdCard(no: string): string {
-  if (!no || no.length <= 7) return no || '-'
-  return `${no.slice(0, 3)}${'*'.repeat(no.length - 7)}${no.slice(-4)}`
-}
 
 function formatTime(ts: number): string {
   if (!ts) return '-'
@@ -72,6 +66,19 @@ function CertificationDetailDialog({ item, open, onOpenChange }: DetailDialogPro
   const queryClient = useQueryClient()
   const [reason, setReason] = React.useState('')
   const isPersonal = item?.type === 'personal'
+
+  // 拉取详情（含 parent_enterprise_name）
+  const detailQuery = useQuery({
+    queryKey: ['admin-certification-detail', item?.id],
+    queryFn: () => {
+      if (!item) return Promise.resolve(null)
+      return getCertificationDetail(item.id)
+    },
+    enabled: open && !!item,
+  })
+  const detailData = detailQuery.data?.data ?? null
+  const parentEnterpriseName =
+    detailData?.parent_enterprise_name || item?.parent_enterprise_name
 
   const reviewMutation = useMutation({
     mutationFn: reviewCertification,
@@ -125,6 +132,15 @@ function CertificationDetailDialog({ item, open, onOpenChange }: DetailDialogPro
               />
             </div>
 
+            {parentEnterpriseName && (
+              <div className='rounded-lg border bg-blue-50/50 px-4 py-3 dark:bg-blue-950/20'>
+                <div className='text-xs text-muted-foreground'>所属企业</div>
+                <div className='mt-0.5 font-medium text-blue-700 dark:text-blue-300'>
+                  {parentEnterpriseName}
+                </div>
+              </div>
+            )}
+
             <div className='grid gap-4 text-sm sm:grid-cols-2'>
               <div>
                 <div className='text-muted-foreground'>认证类型</div>
@@ -140,7 +156,7 @@ function CertificationDetailDialog({ item, open, onOpenChange }: DetailDialogPro
                 <div className='text-muted-foreground'>
                   {isPersonal ? '身份证号' : '统一社会信用代码'}
                 </div>
-                <div className='font-medium'>{maskIdCard(item.id_card_no)}</div>
+                <div className='font-medium'>{item.id_card_no || '-'}</div>
               </div>
               {!isPersonal && (
                 <div>
@@ -180,9 +196,9 @@ function CertificationDetailDialog({ item, open, onOpenChange }: DetailDialogPro
                 ) : (
                   <>
                     {item.business_license && (
-                      <div className='space-y-1.5'>
+                      <div className='space-y-1.5 sm:col-span-2'>
                         <div className='text-xs text-muted-foreground'>营业执照</div>
-                        <CertImage url={item.business_license} className='w-full' previewable />
+                        <CertImage url={item.business_license} className='w-full sm:max-w-[50%]' previewable />
                       </div>
                     )}
                     {item.contact_id_front && (
@@ -327,6 +343,7 @@ export function CertificationAdminPage() {
                     <TableHead>用户</TableHead>
                     <TableHead>认证类型</TableHead>
                     <TableHead>姓名/企业名</TableHead>
+                    <TableHead>所属企业</TableHead>
                     <TableHead>证件号</TableHead>
                     <TableHead>状态</TableHead>
                     <TableHead>提交时间</TableHead>
@@ -336,13 +353,13 @@ export function CertificationAdminPage() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={8} className='h-24 text-center text-muted-foreground'>
+                      <TableCell colSpan={9} className='h-24 text-center text-muted-foreground'>
                         加载中...
                       </TableCell>
                     </TableRow>
                   ) : items.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className='h-24 text-center text-muted-foreground'>
+                      <TableCell colSpan={9} className='h-24 text-center text-muted-foreground'>
                         暂无认证记录
                       </TableCell>
                     </TableRow>
@@ -358,8 +375,17 @@ export function CertificationAdminPage() {
                         </TableCell>
                         <TableCell>{CERT_TYPE_LABELS[item.type]}</TableCell>
                         <TableCell className='max-w-40 truncate'>{item.real_name || '-'}</TableCell>
+                        <TableCell>
+                          {item.parent_enterprise_name ? (
+                            <span className='inline-flex items-center rounded-full bg-blue-100/70 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'>
+                              {item.parent_enterprise_name}
+                            </span>
+                          ) : (
+                            <span className='text-muted-foreground'>-</span>
+                          )}
+                        </TableCell>
                         <TableCell className='font-mono text-xs'>
-                          {maskIdCard(item.id_card_no)}
+                          {item.id_card_no || '-'}
                         </TableCell>
                         <TableCell>
                           <StatusBadge

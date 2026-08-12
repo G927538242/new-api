@@ -71,6 +71,12 @@ export interface UserProfile {
   created_time: number
   /** User settings (JSON string) */
   setting?: string
+  /** Parent user ID (0 for independent users, >0 for sub-accounts) */
+  parent_user_id?: number
+  /** Whether this user is a sub-account under an enterprise */
+  is_sub_account?: boolean
+  /** Parent enterprise name (populated for sub-accounts) */
+  parent_enterprise_name?: string
   /** WeChat ID (OAuth) */
   wechat_id?: string
   /** GitHub ID (OAuth) */

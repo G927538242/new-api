@@ -162,13 +162,19 @@ func SubmitCertification(c *gin.Context) {
 		common.ApiErrorMsg(c, "企业子账户仅支持个人认证，无法提交企业认证")
 		return
 	}
-	if user.CertStatus == model.CertStatusApproved {
-		common.ApiErrorMsg(c, "您已完成认证，无需重复提交")
-		return
-	}
+	// 待审核状态不可重复提交
 	if user.CertStatus == model.CertStatusPending {
 		common.ApiErrorMsg(c, "您的认证正在审核中，请耐心等待")
 		return
+	}
+	// 已认证用户允许变更为另一种认证类型（个人→企业 / 企业→个人）
+	if user.CertStatus == model.CertStatusApproved {
+		// 检查是否与当前认证类型相同
+		latestCert, _ := model.GetLatestCertificationByUserId(userId)
+		if latestCert != nil && latestCert.Type == req.Type {
+			common.ApiErrorMsg(c, "您已完成该类型认证，无需重复提交")
+			return
+		}
 	}
 
 	cert := &model.UserCertification{
@@ -302,10 +308,29 @@ func AdminGetCertification(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+
+	// 补全所属企业名称（子账户时）
+	var parentEnterpriseName string
+	if user.ParentUserId > 0 {
+		// 优先取父用户的企业认证名称
+		if parentCert, cerr := model.GetLatestCertificationByUserId(user.ParentUserId); cerr == nil &&
+			parentCert != nil && parentCert.Type == model.CertTypeEnterprise && parentCert.RealName != "" {
+			parentEnterpriseName = parentCert.RealName
+		} else if parent, perr := model.GetUserById(user.ParentUserId, false); perr == nil {
+			if parent.DisplayName != "" {
+				parentEnterpriseName = parent.DisplayName
+			} else {
+				parentEnterpriseName = parent.Username
+			}
+		}
+	}
+
 	common.ApiSuccess(c, gin.H{
-		"record":   cert,
-		"username": user.Username,
-		"email":    user.Email,
+		"record":                 cert,
+		"username":               user.Username,
+		"email":                  user.Email,
+		"parent_user_id":         user.ParentUserId,
+		"parent_enterprise_name": parentEnterpriseName,
 	})
 }
 

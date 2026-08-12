@@ -1,21 +1,3 @@
-/*
-Copyright (C) 2023-2026 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
 import { useTranslation } from 'react-i18next'
 
 export function HowItWorks() {
@@ -43,45 +25,53 @@ export function HowItWorks() {
   ]
 
   return (
-    <section className='border-t border-border bg-transparent py-28 md:py-36'>
-      <div className='mx-auto max-w-[1100px] px-6'>
-        <div className='home-fade-in-up mb-16 max-w-xl' style={{ animationDelay: '0ms' }}>
-          <p className='mb-3 text-[11px] tracking-[0.2em] uppercase text-muted-foreground'>
+    <section className='relative py-32 md:py-40'>
+      <div className='mx-auto max-w-[1200px] px-6'>
+        {/* Header */}
+        <div className='home-reveal-up mb-16 flex flex-col items-center text-center' style={{ animationDelay: '0ms' }}>
+          <span className='mb-4 inline-flex items-center gap-1.5 rounded-full border border-border bg-background/60 px-3 py-1 text-[11px] font-medium tracking-wide text-muted-foreground'>
             {t('home.steps.eyebrow')}
-          </p>
-          <h2 className='text-[clamp(1.75rem,3.5vw,2.5rem)] leading-[1.15] font-semibold tracking-[-0.01em]'>
+          </span>
+          <h2 className='max-w-2xl text-[clamp(2rem,4vw,3rem)] leading-[1.15] font-semibold tracking-tight text-foreground'>
             {t('home.steps.title')}
           </h2>
-          <p className='mt-4 text-[15px] leading-7 text-muted-foreground'>
+          <p className='mt-5 max-w-xl text-[16px] leading-7 text-muted-foreground'>
             {t('home.steps.subtitle')}
           </p>
         </div>
 
+        {/* Steps */}
         <div className='grid gap-6 md:grid-cols-3'>
           {steps.map((step, i) => (
             <div
               key={step.num}
-              className='home-fade-in-up border border-border rounded-md p-7 bg-background opacity-0'
-              style={{ animationDelay: `${(i + 1) * 80}ms` }}
+              className='home-reveal-up group relative rounded-2xl border border-border bg-background p-8 home-card-hover'
+              style={{ animationDelay: `${(i + 1) * 120}ms` }}
             >
-              <div className='grid grid-cols-[auto_1fr] gap-5'>
-                <div className='text-5xl font-semibold tracking-tight text-muted-foreground/20 tabular-nums'>
+              {/* Number */}
+              <div className='mb-6 flex items-center gap-3'>
+                <span className="font-mono text-[11px] font-semibold tracking-wider text-muted-foreground">
+                  STEP
+                </span>
+                <span className="font-mono text-2xl font-bold tracking-tight text-foreground/10 group-hover:text-foreground/20">
                   {step.num}
-                </div>
-                <div className='min-w-0'>
-                  <h3 className='text-[15px] font-semibold text-foreground'>
-                    {step.title}
-                  </h3>
-                  <p className='mt-2 text-[14px] leading-6 text-muted-foreground'>
-                    {step.desc}
-                  </p>
-                  {step.hint && (
-                    <div className='mt-4 border-t border-border pt-4 font-mono text-[12px] text-foreground/60'>
-                      {step.hint}
-                    </div>
-                  )}
-                </div>
+                </span>
               </div>
+
+              {/* Content */}
+              <h3 className='text-[20px] font-semibold tracking-tight text-foreground'>
+                {step.title}
+              </h3>
+              <p className='mt-3 text-[14px] leading-6 text-muted-foreground'>
+                {step.desc}
+              </p>
+
+              {/* Hint badge */}
+              {step.hint && (
+                <div className='mt-6 inline-block rounded-lg border border-border bg-muted/30 px-3 py-1.5 font-mono text-[11px] text-muted-foreground'>
+                  {step.hint}
+                </div>
+              )}
             </div>
           ))}
         </div>

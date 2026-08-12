@@ -901,6 +901,9 @@ func (user *User) HardDelete() error {
 		if err := deleteUserAuthenticationData(tx, user.Id); err != nil {
 			return err
 		}
+		if err := deleteUserBusinessData(tx, user.Id); err != nil {
+			return err
+		}
 		return tx.Unscoped().Delete(user).Error
 	})
 	if err != nil {

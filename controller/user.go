@@ -528,6 +528,9 @@ func buildSelfUserData(user *model.User) map[string]interface{} {
 	canManageSubAccounts := model.IsEnterpriseAdmin(user.Id)
 	subAccountCount, _ := model.CountUserSubAccounts(user.Id)
 
+	// 子账户补充所属企业名称
+	parentEnterpriseName := model.GetParentEnterpriseName(user.ParentUserId)
+
 	return map[string]interface{}{
 		"id":                user.Id,
 		"username":          user.Username,
@@ -560,6 +563,7 @@ func buildSelfUserData(user *model.User) map[string]interface{} {
 		"is_sub_account":         isSubAccount,
 		"can_manage_sub_accounts": canManageSubAccounts,
 		"sub_account_count":      subAccountCount,
+		"parent_enterprise_name": parentEnterpriseName,
 	}
 }
 

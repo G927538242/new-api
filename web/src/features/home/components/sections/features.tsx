@@ -1,22 +1,4 @@
-/*
-Copyright (C) 2023-2026 QuantumNous
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-For commercial licensing, please contact support@quantumnous.com
-*/
-import { ImageIcon, Video, AudioLines } from 'lucide-react'
+import { ImageIcon, Video, AudioLines, ArrowUpRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 interface FeaturesProps {
@@ -29,17 +11,15 @@ export function Features(_props: FeaturesProps) {
   const cards = [
     {
       id: 'vision',
-      num: '01',
-      icon: <ImageIcon className='size-5 stroke-[1.5] text-foreground/70' />,
+      icon: <ImageIcon className='size-5' />,
       title: t('home.features.vision.title'),
       desc: t('home.features.vision.desc'),
       tags: [t('home.features.vision.tag1'), t('home.features.vision.tag2')],
-      media: <img src='/assets/tokenhub/vision-image-models.png' alt={t('home.features.vision.title')} loading='lazy' decoding='async' className='mt-5 aspect-[4/3] w-full rounded-md border border-border/60 object-cover' />,
+      media: <img src='/assets/tokenhub/vision-image-models.png' alt={t('home.features.vision.title')} loading='lazy' decoding='async' className='aspect-[4/3] w-full rounded-xl object-cover' />,
     },
     {
       id: 'video',
-      num: '02',
-      icon: <Video className='size-5 stroke-[1.5] text-foreground/70' />,
+      icon: <Video className='size-5' />,
       title: t('home.features.video.title'),
       desc: t('home.features.video.desc'),
       tags: [t('home.features.video.tag1'), t('home.features.video.tag2')],
@@ -49,80 +29,82 @@ export function Features(_props: FeaturesProps) {
           alt={t('home.features.video.title')}
           loading='lazy'
           decoding='async'
-          className='mt-5 aspect-[4/3] w-full rounded-md border border-border/60 object-cover'
+          className='aspect-[4/3] w-full rounded-xl object-cover'
         />
       ),
     },
     {
       id: 'audio',
-      num: '03',
-      icon: <AudioLines className='size-5 stroke-[1.5] text-foreground/70' />,
+      icon: <AudioLines className='size-5' />,
       title: t('home.features.audio.title'),
       desc: t('home.features.audio.desc'),
       tags: [t('home.features.audio.tag1'), t('home.features.audio.tag2')],
-      media: <img src='/assets/tokenhub/audio-image-models.png' alt={t('home.features.audio.title')} loading='lazy' decoding='async' className='mt-5 aspect-[4/3] w-full rounded-md border border-border/60 object-cover' />,
+      media: <img src='/assets/tokenhub/audio-image-models.png' alt={t('home.features.audio.title')} loading='lazy' decoding='async' className='aspect-[4/3] w-full rounded-xl object-cover' />,
     },
   ]
 
   return (
-    <section className='border-t border-border bg-transparent py-28 md:py-36'>
-      <div className='mx-auto max-w-[1100px] px-6'>
-        <div className='home-fade-in-up mb-16 max-w-xl' style={{ animationDelay: '0ms' }}>
-          <p className='mb-3 text-[11px] tracking-[0.2em] uppercase text-muted-foreground'>
+    <section className='relative py-32 md:py-40'>
+      <div className='mx-auto max-w-[1200px] px-6'>
+        {/* Section header */}
+        <div className='home-reveal-up mb-16 flex flex-col items-center text-center' style={{ animationDelay: '0ms' }}>
+          <span className='mb-4 inline-flex items-center gap-1.5 rounded-full border border-border bg-background/60 px-3 py-1 text-[11px] font-medium tracking-wide text-muted-foreground'>
+            <span className='size-1 rounded-full bg-emerald-500 home-pulse-dot' />
             {t('home.features.eyebrow')}
-          </p>
-          <h2 className='text-[clamp(1.75rem,3.5vw,2.5rem)] leading-[1.15] font-semibold tracking-[-0.01em]'>
+          </span>
+          <h2 className='max-w-3xl text-[clamp(2rem,4vw,3.2rem)] leading-[1.15] font-semibold tracking-tight text-foreground'>
             {t('home.features.title')}
           </h2>
-          <p className='mt-4 text-[15px] leading-7 text-muted-foreground'>
+          <p className='mt-5 max-w-2xl text-[16px] leading-7 text-muted-foreground'>
             {t('home.features.subtitle')}
           </p>
         </div>
 
-        {/* TokenHub-style video showcase */}
-        <div className='home-fade-in-up mb-16 overflow-hidden rounded-lg border border-border/80 bg-muted/20 opacity-0' style={{ animationDelay: '80ms' }}>
-          <video
-            className='aspect-video w-full object-cover'
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload='auto'
-            poster='/assets/tokenhub/demo-video-poster.jpg'
-            src='/assets/tokenhub/demo-video.mp4'
-          />
-        </div>
-
+        {/* Feature cards */}
         <div className='grid gap-6 md:grid-cols-3'>
           {cards.map((card, i) => (
-            <div
+            <article
               key={card.id}
-              className='home-fade-in-up border border-border rounded-md p-7 bg-background transition-colors duration-200 hover:border-border/80 hover:bg-muted/[0.03] opacity-0'
-              style={{ animationDelay: `${(i + 1) * 80 + 160}ms` }}
+              className={`home-reveal-up group relative flex flex-col rounded-2xl border border-border bg-background p-6 home-card-hover ${i === 1 ? 'md:-translate-y-4' : ''}`}
+              style={{ animationDelay: `${(i + 1) * 120}ms` }}
             >
-              <div className='flex items-start justify-between'>
-                <div className='border border-border rounded-md p-2.5 inline-flex items-center justify-center'>
-                  {card.icon}
-                </div>
-                <span className='text-[11px] font-semibold text-muted-foreground tabular-nums'>
-                  {card.num}
-                </span>
+              {/* Icon */}
+              <div className='flex size-12 items-center justify-center rounded-xl border border-border bg-muted/50 text-foreground transition-colors group-hover:bg-foreground/5'>
+                {card.icon}
               </div>
-              <h3 className='mt-5 text-[15px] font-semibold text-foreground'>
+
+              <h3 className='mt-5 text-[18px] font-semibold text-foreground'>
                 {card.title}
               </h3>
               <p className='mt-2 text-[14px] leading-6 text-muted-foreground'>
                 {card.desc}
               </p>
-              {card.media}
-              <div className='mt-5 space-y-1'>
+
+              {/* Media */}
+              <div className='mt-5 overflow-hidden rounded-xl border border-border/50'>
+                {card.media}
+              </div>
+
+              {/* Tags */}
+              <div className='mt-5 flex flex-wrap gap-2'>
                 {card.tags.map((tag) => (
-                  <p key={tag} className='text-[12px] text-muted-foreground/80'>
+                  <span
+                    key={tag}
+                    className='rounded-md bg-muted/50 px-2.5 py-1 text-[12px] text-muted-foreground transition-colors group-hover:bg-foreground/5 group-hover:text-foreground'
+                  >
                     {tag}
-                  </p>
+                  </span>
                 ))}
               </div>
-            </div>
+
+              {/* Learn more */}
+              <div className='mt-auto pt-5'>
+                <div className='inline-flex items-center gap-1 text-[13px] font-medium text-foreground/70 transition-all group-hover:text-foreground'>
+                  <span>Learn more</span>
+                  <ArrowUpRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </div>
+              </div>
+            </article>
           ))}
         </div>
       </div>

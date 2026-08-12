@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Activity, BarChart3, WalletCards } from 'lucide-react'
+import { Activity, BarChart3, Building2, WalletCards } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { CERT_STATUS, CERT_STATUSES } from '@/features/users/constants'
@@ -170,6 +170,13 @@ export function ProfileHeader({ profile, loading }: ProfileHeaderProps) {
                 </>
               )}
             </div>
+
+            {profile.is_sub_account && profile.parent_enterprise_name && (
+              <div className='mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground'>
+                <Building2 className='size-3.5 shrink-0' />
+                <span>{t('home.verified.enterprise')}: {profile.parent_enterprise_name}</span>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>

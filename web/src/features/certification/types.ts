@@ -23,6 +23,10 @@ export interface CertificationRecord {
   reject_reason: string
   created_at: number
   updated_at: number
+  // 计算字段（仅后端返回）
+  parent_user_id?: number
+  parent_enterprise_name?: string
+  username?: string
 }
 
 export interface MyCertificationResponse {
@@ -57,6 +61,7 @@ export interface UploadCertificationFileResponse {
 export interface AdminCertItem extends CertificationRecord {
   username: string
   email: string
+  parent_enterprise_name?: string
 }
 
 export interface AdminCertListResponse {
@@ -68,4 +73,6 @@ export interface AdminCertDetailResponse {
   record: CertificationRecord
   username: string
   email: string
+  parent_user_id?: number
+  parent_enterprise_name?: string
 }
