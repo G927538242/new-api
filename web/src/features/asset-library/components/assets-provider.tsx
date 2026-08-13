@@ -20,6 +20,7 @@ import React, { useState } from 'react'
 
 import useDialogState from '@/hooks/use-dialog'
 
+import { ASSET_MODELS } from '../constants'
 import type { Asset, AssetGroup, AssetsDialogType } from '../types'
 
 type AssetsContextType = {
@@ -31,6 +32,8 @@ type AssetsContextType = {
   setCurrentGroupId: React.Dispatch<React.SetStateAction<number | null>>
   currentGroup: AssetGroup | null
   setCurrentGroup: React.Dispatch<React.SetStateAction<AssetGroup | null>>
+  currentModel: string
+  setCurrentModel: React.Dispatch<React.SetStateAction<string>>
   refreshTrigger: number
   triggerRefresh: () => void
   groupsRefreshTrigger: number
@@ -48,6 +51,7 @@ export function AssetsProvider({
   const [currentRow, setCurrentRow] = useState<Asset | null>(null)
   const [currentGroupId, setCurrentGroupId] = useState<number | null>(null)
   const [currentGroup, setCurrentGroup] = useState<AssetGroup | null>(null)
+  const [currentModel, setCurrentModel] = useState<string>(ASSET_MODELS.SENDANCE_2_0)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [groupsRefreshTrigger, setGroupsRefreshTrigger] = useState(0)
 
@@ -66,6 +70,8 @@ export function AssetsProvider({
         setCurrentGroupId,
         currentGroup,
         setCurrentGroup,
+        currentModel,
+        setCurrentModel,
         refreshTrigger,
         triggerRefresh,
         groupsRefreshTrigger,

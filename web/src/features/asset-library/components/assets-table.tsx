@@ -52,7 +52,6 @@ import {
   ERROR_MESSAGES,
   SUCCESS_MESSAGES,
   getAssetModelConfig,
-  getAssetModelOptions,
   getAssetStatusConfig,
   getAssetStatusOptions,
   getAssetTypeConfig,
@@ -355,6 +354,7 @@ export function AssetsTable() {
     currentGroupId,
     setCurrentGroupId,
     setCurrentGroup,
+    currentModel,
     groupsRefreshTrigger,
   } = useAssets()
   const isMobile = useMediaQuery('(max-width: 640px)')
@@ -436,7 +436,7 @@ export function AssetsTable() {
       pagination.pageSize,
       globalFilter,
       typeFilterValue,
-      modelFilterValue,
+      currentModel,
       statusFilterValue,
       userFilterValue,
       currentGroupId,
@@ -451,7 +451,7 @@ export function AssetsTable() {
       const typeParam = typeFilterValue
         ? { type: typeFilterValue as AssetType }
         : {}
-      const modelParam = modelFilterValue ? { model: modelFilterValue } : {}
+      const modelParam = currentModel ? { model: currentModel } : {}
       const statusParam = statusFilterValue
         ? { status: statusFilterValue as AssetStatus }
         : {}
@@ -521,7 +521,6 @@ export function AssetsTable() {
   })
 
   const assetTypeOptions = useMemo(() => getAssetTypeOptions(t), [t])
-  const assetModelOptions = useMemo(() => getAssetModelOptions(t), [t])
   const assetStatusOptions = useMemo(() => getAssetStatusOptions(t), [t])
 
   return (
@@ -564,12 +563,6 @@ export function AssetsTable() {
             columnId: 'type',
             title: t('Type'),
             options: assetTypeOptions,
-            singleSelect: true,
-          },
-          {
-            columnId: 'model',
-            title: t('Model'),
-            options: assetModelOptions,
             singleSelect: true,
           },
           {

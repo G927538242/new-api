@@ -20,13 +20,17 @@ import { createFileRoute } from '@tanstack/react-router'
 import z from 'zod'
 
 import { AssetLibrary } from '@/features/asset-library'
-import { ASSET_TYPE_VALUES } from '@/features/asset-library/constants'
+import {
+  ASSET_MODEL_VALUES,
+  ASSET_TYPE_VALUES,
+} from '@/features/asset-library/constants'
 
 const assetLibrarySearchSchema = z.object({
   page: z.number().optional().catch(1),
   pageSize: z.number().optional().catch(10),
   filter: z.string().optional().catch(''),
   type: z.array(z.enum(ASSET_TYPE_VALUES)).optional().catch([]),
+  model: z.enum(ASSET_MODEL_VALUES).optional().catch(ASSET_MODEL_VALUES[0]),
 })
 
 export const Route = createFileRoute('/_authenticated/asset-library/')({

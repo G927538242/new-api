@@ -16,14 +16,57 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { getRouteApi } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
+import { ASSET_MODEL_CONFIG, ASSET_MODEL_VALUES } from './constants'
 import { AssetsDialogs } from './components/assets-dialogs'
 import { AssetsPrimaryButtons } from './components/assets-primary-buttons'
 import { AssetsProvider } from './components/assets-provider'
 import { AssetsTable } from './components/assets-table'
+import { useAssets } from './components/assets-provider'
+
+const route = getRouteApi('/_authenticated/asset-library/')
+
+function AssetModelTabs() {
+  const { t } = useTranslation()
+  const { currentModel, setCurrentModel } = useAssets()
+  const navigate = route.useNavigate()
+  const search = route.useSearch()
+
+  useEffect(() => {
+    if (search.model && search.model !== currentModel) {
+      setCurrentModel(search.model)
+    }
+  }, [search.model])
+
+  const handleModelChange = (model: string) => {
+    setCurrentModel(model)
+    navigate({
+      search: (prev) => ({ ...prev, model }),
+      replace: true,
+    })
+  }
+
+  return (
+    <Tabs value={currentModel} onValueChange={handleModelChange}>
+      <TabsList variant='line'>
+        {ASSET_MODEL_VALUES.map((model) => {
+          const config = ASSET_MODEL_CONFIG[model]
+          return (
+            <TabsTrigger key={model} value={model}>
+              {config ? t(config.labelKey) : model}
+            </TabsTrigger>
+          )
+        })}
+      </TabsList>
+    </Tabs>
+  )
+}
 
 export function AssetLibrary() {
   const { t } = useTranslation()
@@ -31,7 +74,10 @@ export function AssetLibrary() {
     <AssetsProvider>
       <SectionPageLayout fixedContent>
         <SectionPageLayout.Title>
-          {t('素材库')}
+          <div className='flex flex-col gap-2'>
+            <span>{t('素材库')}</span>
+            <AssetModelTabs />
+          </div>
         </SectionPageLayout.Title>
         <SectionPageLayout.Actions>
           <AssetsPrimaryButtons />

@@ -80,7 +80,7 @@ export function Hero(props: HeroProps) {
               </Link>
               <Link
                 to='/docs'
-                className='inline-flex items-center gap-2 text-[14px] font-medium text-muted-foreground transition-colors hover:text-foreground'
+                className='inline-flex items-center gap-2 rounded-lg border border-border px-5 py-3 text-[14px] font-medium text-foreground transition-all hover:border-foreground/40 hover:bg-foreground/5'
               >
                 <BookOpen className='size-4' />
                 <span>{t('Docs')}</span>

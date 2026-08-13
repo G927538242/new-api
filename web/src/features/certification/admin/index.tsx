@@ -43,12 +43,29 @@ import {
   CERT_RECORD_STATUS_LABELS,
   CERT_TYPE_LABELS,
 } from '../constants'
-import type { AdminCertItem } from '../types'
+import type { AdminCertItem, CertRecordStatus } from '../types'
 import { CertImage } from '../components/certification-upload'
 
 function formatTime(ts: number): string {
   if (!ts) return '-'
   return new Date(ts * 1000).toLocaleString()
+}
+
+// 不同审核状态使用不同背景色，便于快速识别
+const CERT_STATUS_BADGE_BG: Record<CertRecordStatus, string> = {
+  0: 'bg-warning/15 text-warning',
+  1: 'bg-success/15 text-success',
+  2: 'bg-destructive/15 text-destructive',
+}
+
+function CertStatusBadge({ status }: { status: CertRecordStatus }) {
+  return (
+    <StatusBadge
+      variant={CERT_RECORD_STATUS_BADGE_VARIANTS[status]}
+      label={CERT_RECORD_STATUS_LABELS[status]}
+      className={CERT_STATUS_BADGE_BG[status]}
+    />
+  )
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -126,10 +143,7 @@ function CertificationDetailDialog({ item, open, onOpenChange }: DetailDialogPro
                   邮箱：{item.email || '-'} · 提交时间：{formatTime(item.created_at)}
                 </div>
               </div>
-              <StatusBadge
-                variant={CERT_RECORD_STATUS_BADGE_VARIANTS[item.status]}
-                label={CERT_RECORD_STATUS_LABELS[item.status]}
-              />
+              <CertStatusBadge status={item.status} />
             </div>
 
             {parentEnterpriseName && (
@@ -388,10 +402,7 @@ export function CertificationAdminPage() {
                           {item.id_card_no || '-'}
                         </TableCell>
                         <TableCell>
-                          <StatusBadge
-                            variant={CERT_RECORD_STATUS_BADGE_VARIANTS[item.status]}
-                            label={CERT_RECORD_STATUS_LABELS[item.status]}
-                          />
+                          <CertStatusBadge status={item.status} />
                         </TableCell>
                         <TableCell className='text-xs whitespace-nowrap'>
                           {formatTime(item.created_at)}

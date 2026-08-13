@@ -41,7 +41,6 @@ import { getAssetGroups, uploadAsset } from '../api'
 import {
   ERROR_MESSAGES,
   SUCCESS_MESSAGES,
-  getAssetModelOptions,
 } from '../constants'
 import { useAssets } from './assets-provider'
 
@@ -53,14 +52,12 @@ export function AssetsPrimaryButtons() {
     setCurrentGroupId,
     currentGroup,
     setCurrentGroup,
+    currentModel,
     setOpen,
     groupsRefreshTrigger,
   } = useAssets()
   const inputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
-  const [selectedModel, setSelectedModel] = useState<string>('')
-
-  const modelOptions = getAssetModelOptions(t)
 
   const { data: groupsData } = useQuery({
     queryKey: ['asset-groups', groupsRefreshTrigger],
@@ -90,10 +87,15 @@ export function AssetsPrimaryButtons() {
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return
 
+    if (!currentModel) {
+      toast.error(t('请先选择模型素材库'))
+      return
+    }
+
     setIsUploading(true)
     try {
       const results = await Promise.allSettled(
-        [...files].map((file) => uploadAsset(file, currentGroupId ?? undefined, selectedModel || undefined))
+        [...files].map((file) => uploadAsset(file, currentGroupId ?? undefined, currentModel))
       )
       const fulfilled = results.filter(
         (r) => r.status === 'fulfilled' && r.value.success
@@ -203,26 +205,6 @@ export function AssetsPrimaryButtons() {
           </Tooltip>
         </>
       )}
-
-      {/* 模型选择（上传时关联模型） */}
-      <Select
-        value={selectedModel}
-        onValueChange={(value) => setSelectedModel(value || '')}
-      >
-        <SelectTrigger size='sm' className='w-[140px]'>
-          <SelectValue placeholder={t('Choose Model')} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectItem value=''>{t('No model association')}</SelectItem>
-            {modelOptions.map((opt) => (
-              <SelectItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
 
       {/* 上传素材 */}
       <Button

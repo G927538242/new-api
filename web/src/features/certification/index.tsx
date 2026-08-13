@@ -65,6 +65,14 @@ function StatusHeader({
             <StatusBadge
               variant={CERT_STATUS_BADGE_VARIANTS[certStatus as 0 | 1 | 2 | 3]}
               label={CERT_STATUS_LABELS[certStatus as 0 | 1 | 2 | 3]}
+              className={
+                [
+                  'bg-neutral/15 text-muted-foreground',
+                  'bg-warning/15 text-warning',
+                  'bg-success/15 text-success',
+                  'bg-destructive/15 text-destructive',
+                ][certStatus as 0 | 1 | 2 | 3]
+              }
             />
           </div>
           <CardDescription>{config.desc}</CardDescription>
