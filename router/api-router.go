@@ -291,6 +291,18 @@ func SetApiRouter(router *gin.Engine) {
 			assetGroupRoute.DELETE("/:id", controller.DeleteAssetGroup)
 		}
 
+		// 素材上游渠道（Asset Channel）路由
+		// 列表/详情登录用户可读（素材库页面据此展示模型→渠道映射），增删改仅管理端
+		assetChannelRoute := apiRouter.Group("/asset-channel")
+		assetChannelRoute.Use(middleware.UserAuth())
+		{
+			assetChannelRoute.GET("/", controller.ListAssetChannels)
+			assetChannelRoute.GET("/:id", controller.GetAssetChannel)
+			assetChannelRoute.POST("/", middleware.AdminAuth(), controller.CreateAssetChannel)
+			assetChannelRoute.PUT("/:id", middleware.AdminAuth(), controller.UpdateAssetChannel)
+			assetChannelRoute.DELETE("/:id", middleware.AdminAuth(), controller.DeleteAssetChannel)
+		}
+
 		// 本地存储素材文件访问（通配符路由单独注册，避免与 :id 冲突）
 		apiRouter.GET("/asset/file/*key", middleware.UserAuth(), controller.ServeAssetFile)
 

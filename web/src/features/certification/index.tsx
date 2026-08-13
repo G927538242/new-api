@@ -220,15 +220,6 @@ export function CertificationPage() {
     setShowForm(true)
   }
 
-  // 表单显示条件：
-  //   - 未认证（0）或被驳回（3）：普通首次/重新提交
-  //   - 已通过（2）且用户主动切换为另一类型：变更认证
-  const showFormCondition =
-    !isAdmin && (showForm || ((certStatus === 0 || certStatus === 3) && !showForm))
-
-  const isFormMode =
-    showForm || certStatus === 0 || certStatus === 3
-
   return (
     <SectionPageLayout>
       <SectionPageLayout.Title>{t('Certification')}</SectionPageLayout.Title>

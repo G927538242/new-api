@@ -87,12 +87,48 @@ func UploadAsset(c *gin.Context) {
 		return
 	}
 
-	// 解析素材分组 ID（可选）
+	// 解析素材分组 ID（必填：素材必须放入素材分组）
 	groupIdStr := c.PostForm("group_id")
 	groupId, _ := strconv.Atoi(groupIdStr)
 
-	// 解析关联模型（可选）
-	modelName := c.PostForm("model")
+	// 解析关联模型（必填：素材必须归属对应模型）
+	modelName := strings.TrimSpace(c.PostForm("model"))
+
+	// 解析所属渠道
+	channelIdStr := c.PostForm("channel_id")
+	channelId, _ := strconv.Atoi(channelIdStr)
+
+	// 素材必须放在素材分组和对应模型里面
+	if groupId <= 0 {
+		common.ApiErrorMsg(c, "group_id is required, asset must belong to an asset group")
+		return
+	}
+	if modelName == "" {
+		common.ApiErrorMsg(c, "model is required, asset must belong to a model")
+		return
+	}
+
+	// 校验分组归属：分组必须属于当前渠道 + 模型
+	group, gErr := model.GetAssetGroupByIdAndUserId(groupId, userId)
+	if gErr != nil {
+		common.ApiErrorMsg(c, "asset group not found or no permission")
+		return
+	}
+	if channelId <= 0 {
+		channelId = group.ChannelId
+	}
+	if channelId <= 0 {
+		common.ApiErrorMsg(c, "channel_id is required, asset group has no channel binding")
+		return
+	}
+	if group.ChannelId != channelId || group.Model != modelName {
+		common.ApiErrorMsg(c, "asset group does not belong to the given channel or model")
+		return
+	}
+	if err := validateChannelModel(channelId, modelName); err != nil {
+		common.ApiErrorMsg(c, err.Error())
+		return
+	}
 
 	// 生成存储 key：{type}/{uuid}.{ext}
 	ext := filepath.Ext(header.Filename)
@@ -112,6 +148,7 @@ func UploadAsset(c *gin.Context) {
 
 	asset := &model.Asset{
 		UserId:      userId,
+		ChannelId:   channelId,
 		GroupId:     groupId,
 		Model:       modelName,
 		Type:        assetType,
@@ -124,13 +161,8 @@ func UploadAsset(c *gin.Context) {
 		CreatedTime: common.GetTimestamp(),
 	}
 
-	// 查找素材分组，获取方舟 Group ID
-	if groupId > 0 {
-		group, gErr := model.GetAssetGroupByIdAndUserId(groupId, userId)
-		if gErr == nil {
-			asset.UpstreamGroupId = group.UpstreamGroupId
-		}
-	}
+	// 从分组获取上游 Group ID
+	asset.UpstreamGroupId = group.UpstreamGroupId
 
 	if err := asset.Insert(); err != nil {
 		_ = storage.Delete(c.Request.Context(), objectKey)
@@ -138,35 +170,47 @@ func UploadAsset(c *gin.Context) {
 		return
 	}
 
-	// 异步同步到方舟素材库（如果配置了 AK/SK 且素材 URL 是公网可访问的）
-	go syncAssetToArk(asset)
+	// 异步同步到上游素材库（按渠道凭证）
+	go syncAssetToArk(asset, channelId)
 
 	common.ApiSuccess(c, asset)
 }
 
-// syncAssetToArk 异步将素材同步到方舟素材库
-func syncAssetToArk(asset *model.Asset) {
-	if !asset_setting.IsVolcConfigured() {
-		_ = model.UpdateAssetStatus(asset.Id, "local")
-		return
+// syncAssetToArk 异步将素材同步到上游素材库（按渠道 AK/SK）
+func syncAssetToArk(asset *model.Asset, channelId int) {
+	// 使用渠道凭证；渠道不可用时回退全局配置
+	var ak, sk string
+	var err error
+	if channelId > 0 {
+		var channel *model.AssetChannel
+		channel, err = model.GetAssetChannelById(channelId)
+		if err == nil && channel.HasCredentials() && channel.Type == model.AssetChannelTypeVolcArk {
+			ak, sk = channel.AccessKey, channel.SecretKey
+		}
+	}
+	if ak == "" || sk == "" {
+		if !asset_setting.IsVolcConfigured() {
+			_ = model.UpdateAssetStatus(asset.Id, "local")
+			return
+		}
+		ak, sk = asset_setting.GetVolcCredentials()
 	}
 
-	// 方舟 CreateAsset 要求公网可访问 URL，本地存储的相对路径不可用
+	// 上游 CreateAsset 要求公网可访问 URL，本地存储的相对路径不可用
 	if !strings.HasPrefix(asset.URL, "http") {
 		_ = model.UpdateAssetStatus(asset.Id, "local")
 		return
 	}
 
-	// 需要有关联的方舟 Group ID
+	// 需要有关联的上游 Group ID
 	if asset.UpstreamGroupId == "" {
 		_ = model.UpdateAssetStatus(asset.Id, "local")
 		return
 	}
 
-	ak, sk := asset_setting.GetVolcCredentials()
 	client := service.NewArkAssetClient(ak, sk)
 
-	// 方舟 AssetType 首字母大写：Image / Video / Audio
+	// 上游 AssetType 首字母大写：Image / Video / Audio
 	arkAssetType := strings.Title(asset.Type)
 
 	assetId, err := client.CreateAsset(&service.CreateAssetReq{
@@ -195,6 +239,7 @@ func GetAllAssets(c *gin.Context) {
 	assetType := c.Query("type")
 	modelParam := c.Query("model")
 	tenantIdStr := c.Query("tenant_id")
+	channelIdStr := c.Query("channel_id")
 	groupIdStr := c.Query("group_id")
 	statusParam := c.Query("status")
 	pageInfo := common.GetPageQuery(c)
@@ -203,6 +248,12 @@ func GetAllAssets(c *gin.Context) {
 		AssetType: assetType,
 		Model:     modelParam,
 		Status:    statusParam,
+	}
+
+	if channelIdStr != "" {
+		if parsedChannelId, err := strconv.Atoi(channelIdStr); err == nil {
+			filter.ChannelId = parsedChannelId
+		}
 	}
 
 	if groupIdStr != "" {
@@ -250,6 +301,7 @@ func SearchAssets(c *gin.Context) {
 	assetType := c.Query("type")
 	modelParam := c.Query("model")
 	tenantIdStr := c.Query("tenant_id")
+	channelIdStr := c.Query("channel_id")
 	groupIdStr := c.Query("group_id")
 	statusParam := c.Query("status")
 	pageInfo := common.GetPageQuery(c)
@@ -258,6 +310,12 @@ func SearchAssets(c *gin.Context) {
 		AssetType: assetType,
 		Model:     modelParam,
 		Status:    statusParam,
+	}
+
+	if channelIdStr != "" {
+		if parsedChannelId, err := strconv.Atoi(channelIdStr); err == nil {
+			filter.ChannelId = parsedChannelId
+		}
 	}
 
 	if groupIdStr != "" {
@@ -343,11 +401,16 @@ func DeleteAsset(c *gin.Context) {
 		return
 	}
 
-	// 同步删除方舟素材（如有 UpstreamAssetId）
-	if asset.UpstreamAssetId != "" && asset_setting.IsVolcConfigured() {
-		ak, sk := asset_setting.GetVolcCredentials()
-		client := service.NewArkAssetClient(ak, sk)
-		_ = client.DeleteAsset(asset.UpstreamAssetId)
+	// 同步删除上游素材（如有 UpstreamAssetId，优先使用渠道凭证）
+	if asset.UpstreamAssetId != "" {
+		if ak, sk, ok := getAssetUpstreamCredentials(asset); ok {
+			client := service.NewArkAssetClient(ak, sk)
+			_ = client.DeleteAsset(asset.UpstreamAssetId)
+		} else if asset_setting.IsVolcConfigured() {
+			ak, sk := asset_setting.GetVolcCredentials()
+			client := service.NewArkAssetClient(ak, sk)
+			_ = client.DeleteAsset(asset.UpstreamAssetId)
+		}
 	}
 
 	// 删除本地存储文件
@@ -403,12 +466,15 @@ func SyncAssetStatus(c *gin.Context) {
 		return
 	}
 
-	// 查询方舟素材状态
-	if !asset_setting.IsVolcConfigured() {
-		common.ApiSuccess(c, asset)
-		return
+	// 查询上游素材状态
+	ak, sk, ok := getAssetUpstreamCredentials(asset)
+	if !ok {
+		if !asset_setting.IsVolcConfigured() {
+			common.ApiSuccess(c, asset)
+			return
+		}
+		ak, sk = asset_setting.GetVolcCredentials()
 	}
-	ak, sk := asset_setting.GetVolcCredentials()
 	client := service.NewArkAssetClient(ak, sk)
 	info, err := client.GetAsset(asset.UpstreamAssetId)
 	if err != nil {
@@ -423,6 +489,21 @@ func SyncAssetStatus(c *gin.Context) {
 	}
 
 	common.ApiSuccess(c, asset)
+}
+
+// getAssetUpstreamCredentials 获取素材所属渠道的上游凭证（仅 volcark 类型）
+func getAssetUpstreamCredentials(asset *model.Asset) (string, string, bool) {
+	if asset.ChannelId <= 0 {
+		return "", "", false
+	}
+	channel, err := model.GetAssetChannelById(asset.ChannelId)
+	if err != nil {
+		return "", "", false
+	}
+	if !channel.HasCredentials() || channel.Type != model.AssetChannelTypeVolcArk {
+		return "", "", false
+	}
+	return channel.AccessKey, channel.SecretKey, true
 }
 
 // ServeAssetFile 提供本地存储素材的文件访问（仅 local 模式有效）。

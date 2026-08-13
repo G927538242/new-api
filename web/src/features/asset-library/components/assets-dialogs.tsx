@@ -68,6 +68,8 @@ function GroupMutateDialog({
     open,
     setOpen,
     currentGroup,
+    currentModel,
+    currentChannel,
     triggerGroupsRefresh,
   } = useAssets()
   const isEdit = mode === 'edit'
@@ -104,7 +106,7 @@ function GroupMutateDialog({
     try {
       const response = isEdit
         ? await updateAssetGroup(currentGroup!.id, values)
-        : await createAssetGroup(values)
+        : await createAssetGroup(values, currentChannel?.id ?? 0, currentModel)
 
       if (response.success) {
         toast.success(
@@ -161,7 +163,7 @@ function GroupMutateDialog({
           <Button
             type='submit'
             form={GROUP_MUTATE_FORM_ID}
-            disabled={isSaving}
+            disabled={isSaving || (!isEdit && !currentChannel)}
           >
             {isSaving ? (
               <Loader2 className='mr-2 h-4 w-4 animate-spin' />
@@ -171,6 +173,21 @@ function GroupMutateDialog({
         </>
       }
     >
+      {!isEdit && currentChannel && (
+        <div className='rounded-lg border bg-muted/30 px-3 py-2 text-sm'>
+          <div className='flex items-center gap-1.5'>
+            <span className='text-muted-foreground'>归属渠道：</span>
+            <span className='font-medium'>{currentChannel.name}</span>
+            <span className='text-muted-foreground'>· 模型：</span>
+            <span className='font-medium'>{currentModel}</span>
+          </div>
+        </div>
+      )}
+      {!isEdit && !currentChannel && (
+        <div className='rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive'>
+          请先在「系统设置 → 运营 → 素材渠道」配置渠道后，再创建素材分组。
+        </div>
+      )}
       <Form {...form}>
         <form
           id={GROUP_MUTATE_FORM_ID}

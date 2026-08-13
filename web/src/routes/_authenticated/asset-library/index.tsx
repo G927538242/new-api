@@ -21,7 +21,6 @@ import z from 'zod'
 
 import { AssetLibrary } from '@/features/asset-library'
 import {
-  ASSET_MODEL_VALUES,
   ASSET_TYPE_VALUES,
 } from '@/features/asset-library/constants'
 
@@ -30,7 +29,8 @@ const assetLibrarySearchSchema = z.object({
   pageSize: z.number().optional().catch(10),
   filter: z.string().optional().catch(''),
   type: z.array(z.enum(ASSET_TYPE_VALUES)).optional().catch([]),
-  model: z.enum(ASSET_MODEL_VALUES).optional().catch(ASSET_MODEL_VALUES[0]),
+  // 模型列表由素材渠道配置动态生成，这里不做枚举校验
+  model: z.string().optional().catch(''),
 })
 
 export const Route = createFileRoute('/_authenticated/asset-library/')({

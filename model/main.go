@@ -292,6 +292,7 @@ func migrateDB() error {
 		&SystemTaskLock{},
 		&Asset{},
 		&AssetGroup{},
+		&AssetChannel{},
 		&UserCertification{},
 		&CasbinRule{},
 		&AuthzRole{},

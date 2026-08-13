@@ -116,6 +116,47 @@ export function getAssetModelConfig(model: string) {
 }
 
 // ============================================================================
+// Channel Configuration (upstream asset channels)
+// ============================================================================
+
+export const ASSET_CHANNEL_TYPES = {
+  VOLCARK: 'volcark', // 字节官方（火山引擎方舟）
+  MOMA: 'moma', // 移动 MOMA 平台
+} as const
+
+export const ASSET_CHANNEL_TYPE_VALUES = [
+  ASSET_CHANNEL_TYPES.VOLCARK,
+  ASSET_CHANNEL_TYPES.MOMA,
+] as const
+
+export const ASSET_CHANNEL_TYPE_CONFIG: Record<
+  string,
+  { label: string; value: string; variant: StatusBadgeProps['variant'] }
+> = {
+  [ASSET_CHANNEL_TYPES.VOLCARK]: {
+    label: '字节官方',
+    value: ASSET_CHANNEL_TYPES.VOLCARK,
+    variant: 'info',
+  },
+  [ASSET_CHANNEL_TYPES.MOMA]: {
+    label: '移动MOMA平台',
+    value: ASSET_CHANNEL_TYPES.MOMA,
+    variant: 'purple',
+  },
+}
+
+export function getAssetChannelTypeOptions() {
+  return ASSET_CHANNEL_TYPE_VALUES.map((type) => ({
+    label: ASSET_CHANNEL_TYPE_CONFIG[type].label,
+    value: type,
+  }))
+}
+
+export function getAssetChannelTypeConfig(type: string) {
+  return ASSET_CHANNEL_TYPE_CONFIG[type]
+}
+
+// ============================================================================
 // Asset Status Configuration
 // ============================================================================
 

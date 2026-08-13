@@ -53,22 +53,33 @@ export function AssetsPrimaryButtons() {
     currentGroup,
     setCurrentGroup,
     currentModel,
+    currentChannel,
     setOpen,
     groupsRefreshTrigger,
   } = useAssets()
   const inputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
 
+  // 分组列表仅显示当前渠道 + 模型下的分组
   const { data: groupsData } = useQuery({
-    queryKey: ['asset-groups', groupsRefreshTrigger],
+    queryKey: [
+      'asset-groups',
+      groupsRefreshTrigger,
+      currentChannel?.id ?? 0,
+      currentModel,
+    ],
     queryFn: async () => {
-      const result = await getAssetGroups()
+      const result = await getAssetGroups({
+        channel_id: currentChannel?.id,
+        model: currentModel || undefined,
+      })
       if (!result.success) {
         toast.error(t(ERROR_MESSAGES.LOAD_GROUPS_FAILED))
         return []
       }
       return result.data?.items || []
     },
+    enabled: !!currentChannel && !!currentModel,
   })
   const groups = groupsData || []
 
@@ -87,15 +98,27 @@ export function AssetsPrimaryButtons() {
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return
 
+    if (!currentChannel) {
+      toast.error(t('请先配置素材上游渠道'))
+      return
+    }
+
     if (!currentModel) {
       toast.error(t('请先选择模型素材库'))
+      return
+    }
+
+    if (!currentGroupId) {
+      toast.error(t('请先选择素材分组，素材必须放入素材分组'))
       return
     }
 
     setIsUploading(true)
     try {
       const results = await Promise.allSettled(
-        [...files].map((file) => uploadAsset(file, currentGroupId ?? undefined, currentModel))
+        [...files].map((file) =>
+          uploadAsset(file, currentGroupId, currentModel, currentChannel.id)
+        )
       )
       const fulfilled = results.filter(
         (r) => r.status === 'fulfilled' && r.value.success

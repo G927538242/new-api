@@ -20,6 +20,8 @@ import { api } from '@/lib/api'
 
 import type {
   Asset,
+  AssetChannel,
+  AssetChannelFormValues,
   AssetGroup,
   AssetGroupFormValues,
   ApiResponse,
@@ -43,6 +45,7 @@ export async function getAssets(
     page_size = 10,
     type,
     model,
+    channel_id,
     user_id,
     tenant_id,
     group_id,
@@ -53,6 +56,7 @@ export async function getAssets(
   queryParams.set('page_size', String(page_size))
   if (type) queryParams.set('type', type)
   if (model) queryParams.set('model', model)
+  if (channel_id) queryParams.set('channel_id', String(channel_id))
   if (user_id) queryParams.set('user_id', String(user_id))
   if (tenant_id) queryParams.set('tenant_id', String(tenant_id))
   if (group_id !== undefined && group_id !== null)
@@ -70,6 +74,7 @@ export async function searchAssets(
     keyword = '',
     type,
     model,
+    channel_id,
     user_id,
     tenant_id,
     group_id,
@@ -81,6 +86,7 @@ export async function searchAssets(
   queryParams.set('keyword', keyword)
   if (type) queryParams.set('type', type)
   if (model) queryParams.set('model', model)
+  if (channel_id) queryParams.set('channel_id', String(channel_id))
   if (user_id) queryParams.set('user_id', String(user_id))
   if (tenant_id) queryParams.set('tenant_id', String(tenant_id))
   if (group_id !== undefined && group_id !== null)
@@ -102,7 +108,8 @@ export async function getAsset(id: number): Promise<ApiResponse<Asset>> {
 export async function uploadAsset(
   file: File,
   groupId?: number,
-  model?: string
+  model?: string,
+  channelId?: number
 ): Promise<ApiResponse<Asset>> {
   const formData = new FormData()
   formData.append('file', file)
@@ -111,6 +118,9 @@ export async function uploadAsset(
   }
   if (model) {
     formData.append('model', model)
+  }
+  if (channelId !== undefined && channelId !== null) {
+    formData.append('channel_id', String(channelId))
   }
   const res = await api.post('/api/asset/', formData, {
     headers: {
@@ -140,15 +150,58 @@ export async function syncAssetStatus(
 }
 
 // ============================================================================
+// Asset Channel Management
+// ============================================================================
+
+// Get asset channels list
+export async function getAssetChannels(): Promise<
+  ApiResponse<AssetChannel[]>
+> {
+  const res = await api.get('/api/asset-channel/')
+  return res.data
+}
+
+// Create an asset channel
+export async function createAssetChannel(
+  data: AssetChannelFormValues
+): Promise<ApiResponse<AssetChannel>> {
+  const res = await api.post('/api/asset-channel/', data, {
+    skipBusinessError: true,
+  })
+  return res.data
+}
+
+// Update an asset channel
+export async function updateAssetChannel(
+  id: number,
+  data: AssetChannelFormValues
+): Promise<ApiResponse<AssetChannel>> {
+  const res = await api.put(`/api/asset-channel/${id}`, data, {
+    skipBusinessError: true,
+  })
+  return res.data
+}
+
+// Delete an asset channel
+export async function deleteAssetChannel(id: number): Promise<ApiResponse> {
+  const res = await api.delete(`/api/asset-channel/${id}`, {
+    skipBusinessError: true,
+  })
+  return res.data
+}
+
+// ============================================================================
 // Asset Group Management
 // ============================================================================
 
-// Get asset groups list (supports keyword search)
+// Get asset groups list (supports keyword / channel / model filters)
 export async function getAssetGroups(
   params: GetAssetGroupsParams = {}
 ): Promise<GetAssetGroupsResponse> {
   const queryParams = new URLSearchParams()
   if (params.keyword) queryParams.set('keyword', params.keyword)
+  if (params.channel_id) queryParams.set('channel_id', String(params.channel_id))
+  if (params.model) queryParams.set('model', params.model)
   const res = await api.get(`/api/asset-group/?${queryParams.toString()}`)
   return res.data
 }
@@ -161,11 +214,13 @@ export async function getAssetGroup(
   return res.data
 }
 
-// Create an asset group
+// Create an asset group (bound to channel + model)
 export async function createAssetGroup(
-  data: AssetGroupFormValues
+  data: AssetGroupFormValues,
+  channelId: number,
+  model: string
 ): Promise<ApiResponse<AssetGroup>> {
-  const res = await api.post('/api/asset-group/', data, {
+  const res = await api.post('/api/asset-group/', { ...data, channel_id: channelId, model }, {
     skipBusinessError: true,
   })
   return res.data

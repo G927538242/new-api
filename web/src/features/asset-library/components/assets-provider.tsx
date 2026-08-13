@@ -21,7 +21,7 @@ import React, { useState } from 'react'
 import useDialogState from '@/hooks/use-dialog'
 
 import { ASSET_MODELS } from '../constants'
-import type { Asset, AssetGroup, AssetsDialogType } from '../types'
+import type { Asset, AssetChannel, AssetGroup, AssetsDialogType } from '../types'
 
 type AssetsContextType = {
   open: AssetsDialogType | null
@@ -34,6 +34,11 @@ type AssetsContextType = {
   setCurrentGroup: React.Dispatch<React.SetStateAction<AssetGroup | null>>
   currentModel: string
   setCurrentModel: React.Dispatch<React.SetStateAction<string>>
+  // 素材上游渠道：当前模型自动归属的渠道
+  channels: AssetChannel[]
+  setChannels: React.Dispatch<React.SetStateAction<AssetChannel[]>>
+  currentChannel: AssetChannel | null
+  setCurrentChannel: React.Dispatch<React.SetStateAction<AssetChannel | null>>
   refreshTrigger: number
   triggerRefresh: () => void
   groupsRefreshTrigger: number
@@ -52,6 +57,8 @@ export function AssetsProvider({
   const [currentGroupId, setCurrentGroupId] = useState<number | null>(null)
   const [currentGroup, setCurrentGroup] = useState<AssetGroup | null>(null)
   const [currentModel, setCurrentModel] = useState<string>(ASSET_MODELS.SENDANCE_2_0)
+  const [channels, setChannels] = useState<AssetChannel[]>([])
+  const [currentChannel, setCurrentChannel] = useState<AssetChannel | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [groupsRefreshTrigger, setGroupsRefreshTrigger] = useState(0)
 
@@ -72,6 +79,10 @@ export function AssetsProvider({
         setCurrentGroup,
         currentModel,
         setCurrentModel,
+        channels,
+        setChannels,
+        currentChannel,
+        setCurrentChannel,
         refreshTrigger,
         triggerRefresh,
         groupsRefreshTrigger,

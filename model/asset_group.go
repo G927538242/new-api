@@ -10,10 +10,13 @@ import (
 
 // AssetGroup 素材资产组合，代理方舟 Asset Group，
 // 用于按项目/人物分组管理素材。
+// 分组归属「渠道 + 模型」：不同上游渠道、不同模型下各自维护独立分组列表。
 type AssetGroup struct {
 	Id               int            `json:"id"`
 	UserId           int            `json:"user_id" gorm:"index"`
 	UserName         string         `json:"user_name" gorm:"type:varchar(255)"`
+	ChannelId        int            `json:"channel_id" gorm:"index"`              // 所属素材渠道（AssetChannel.Id），0 表示未绑定渠道
+	Model            string         `json:"model" gorm:"type:varchar(64);index"`  // 所属模型
 	UpstreamGroupId  string         `json:"upstream_group_id" gorm:"type:varchar(128);index"` // 方舟 Group ID
 	Name             string         `json:"name" gorm:"type:varchar(64)"`
 	Description      string         `json:"description" gorm:"type:varchar(300)"`
@@ -25,6 +28,11 @@ type AssetGroup struct {
 
 // GetAssetGroupsByUserId 分页查询某用户的素材资产组合列表
 func GetAssetGroupsByUserId(userId int, keyword string, startIdx int, num int) (groups []*AssetGroup, total int64, err error) {
+	return GetAssetGroupsByUserIdAndChannel(userId, 0, "", keyword, startIdx, num)
+}
+
+// GetAssetGroupsByUserIdAndChannel 分页查询某用户在某渠道+模型下的素材资产组合列表
+func GetAssetGroupsByUserIdAndChannel(userId int, channelId int, modelName string, keyword string, startIdx int, num int) (groups []*AssetGroup, total int64, err error) {
 	tx := DB.Begin()
 	if tx.Error != nil {
 		return nil, 0, tx.Error
@@ -36,6 +44,12 @@ func GetAssetGroupsByUserId(userId int, keyword string, startIdx int, num int) (
 	}()
 
 	query := tx.Model(&AssetGroup{}).Where("user_id = ?", userId)
+	if channelId > 0 {
+		query = query.Where("channel_id = ?", channelId)
+	}
+	if modelName != "" {
+		query = query.Where("model = ?", modelName)
+	}
 	if keyword != "" {
 		query = query.Where("name LIKE ?", "%"+keyword+"%")
 	}

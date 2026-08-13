@@ -20,7 +20,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
 import type { ColumnDef, Row } from '@tanstack/react-table'
 import { Copy, Eye, RefreshCw, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -63,7 +63,10 @@ import { useAssets } from './assets-provider'
 
 const route = getRouteApi('/_authenticated/asset-library/')
 
-function useAssetsColumns(onPreview: (asset: Asset) => void): ColumnDef<Asset>[] {
+function useAssetsColumns(
+  onPreview: (asset: Asset) => void,
+  channelNames: Map<number, string>
+): ColumnDef<Asset>[] {
   const { t } = useTranslation()
   return [
     {
@@ -89,6 +92,21 @@ function useAssetsColumns(onPreview: (asset: Asset) => void): ColumnDef<Asset>[]
         <span className='font-medium'>{row.getValue('name')}</span>
       ),
       size: 220,
+    },
+    {
+      accessorKey: 'channel_id',
+      header: t('上游渠道'),
+      meta: { mobileHidden: true },
+      cell: ({ row }) => {
+        const channelId = row.original.channel_id
+        const channelName = channelId ? channelNames.get(channelId) : undefined
+        return channelName ? (
+          <span className='text-sm'>{channelName}</span>
+        ) : (
+          <span className='text-muted-foreground text-sm'>-</span>
+        )
+      },
+      size: 120,
     },
     {
       accessorKey: 'type',
@@ -348,27 +366,54 @@ export function AssetsTable() {
     setPreviewOpen(true)
   }
 
-  const columns = useAssetsColumns(handlePreview)
   const {
     refreshTrigger,
     currentGroupId,
     setCurrentGroupId,
     setCurrentGroup,
     currentModel,
+    currentChannel,
+    channels,
     groupsRefreshTrigger,
   } = useAssets()
   const isMobile = useMediaQuery('(max-width: 640px)')
 
-  // Fetch groups for the group filter dropdown
+  // 渠道 ID → 名称映射（用于列表渠道列）
+  const channelNames = useMemo(() => {
+    const map = new Map<number, string>()
+    for (const channel of channels) {
+      map.set(channel.id, channel.name)
+    }
+    return map
+  }, [channels])
+
+  const columns = useAssetsColumns(handlePreview, channelNames)
+
+  // 切换模型/渠道时，重置分组筛选
+  useEffect(() => {
+    setCurrentGroupId(null)
+    setCurrentGroup(null)
+  }, [currentModel, currentChannel?.id, setCurrentGroupId, setCurrentGroup])
+
+  // Fetch groups for the group filter dropdown (当前渠道 + 模型下)
   const { data: groupsData } = useQuery({
-    queryKey: ['asset-groups', groupsRefreshTrigger],
+    queryKey: [
+      'asset-groups',
+      groupsRefreshTrigger,
+      currentChannel?.id ?? 0,
+      currentModel,
+    ],
     queryFn: async () => {
-      const result = await getAssetGroups()
+      const result = await getAssetGroups({
+        channel_id: currentChannel?.id,
+        model: currentModel || undefined,
+      })
       if (!result.success) {
         return []
       }
       return result.data?.items || []
     },
+    enabled: !!currentChannel && !!currentModel,
   })
   const groups = groupsData || []
 
@@ -411,12 +456,6 @@ export function AssetsTable() {
       | undefined) ?? []
   const typeFilterValue = typeFilter[0] ?? ''
 
-  const modelFilter =
-    (columnFilters.find((filter) => filter.id === 'model')?.value as
-      | string[]
-      | undefined) ?? []
-  const modelFilterValue = modelFilter[0] ?? ''
-
   const statusFilter =
     (columnFilters.find((filter) => filter.id === 'status')?.value as
       | string[]
@@ -437,6 +476,7 @@ export function AssetsTable() {
       globalFilter,
       typeFilterValue,
       currentModel,
+      currentChannel?.id,
       statusFilterValue,
       userFilterValue,
       currentGroupId,
@@ -452,6 +492,9 @@ export function AssetsTable() {
         ? { type: typeFilterValue as AssetType }
         : {}
       const modelParam = currentModel ? { model: currentModel } : {}
+      const channelParam = currentChannel?.id
+        ? { channel_id: currentChannel.id }
+        : {}
       const statusParam = statusFilterValue
         ? { status: statusFilterValue as AssetStatus }
         : {}
@@ -466,6 +509,7 @@ export function AssetsTable() {
             ...params,
             ...typeParam,
             ...modelParam,
+            ...channelParam,
             ...statusParam,
             ...userParam,
             ...groupParam,
@@ -475,6 +519,7 @@ export function AssetsTable() {
             ...params,
             ...typeParam,
             ...modelParam,
+            ...channelParam,
             ...statusParam,
             ...userParam,
             ...groupParam,

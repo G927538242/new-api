@@ -18,8 +18,9 @@ type Asset struct {
 	UserName         string         `json:"user_name" gorm:"type:varchar(255)"`
 	TenantId         int            `json:"tenant_id" gorm:"index"`
 	TenantName       string         `json:"tenant_name" gorm:"type:varchar(255)"`
-	GroupId          int            `json:"group_id" gorm:"index"`                       // 所属素材分组（本平台 AssetGroup.Id）
-	UpstreamGroupId  string         `json:"upstream_group_id" gorm:"type:varchar(128)"`  // 方舟 Group ID
+	ChannelId        int            `json:"channel_id" gorm:"index"`                    // 所属素材渠道（AssetChannel.Id）
+	GroupId          int            `json:"group_id" gorm:"index"`                      // 所属素材分组（本平台 AssetGroup.Id）
+	UpstreamGroupId  string         `json:"upstream_group_id" gorm:"type:varchar(128)"` // 方舟 Group ID
 	UpstreamAssetId  string         `json:"upstream_asset_id" gorm:"type:varchar(128);index"` // 方舟 Asset ID，用于 asset:// 引用
 	Status           string         `json:"status" gorm:"type:varchar(16);index"`        // pending / active / failed
 	Model            string         `json:"model" gorm:"type:varchar(64);index"`         // sendance-2.0 / sendance-2.5
@@ -41,6 +42,7 @@ type AssetFilter struct {
 	UserId     int
 	AssetType  string
 	Model      string
+	ChannelId  int // 按素材渠道筛选
 	TenantId   int
 	GroupId    int    // 按素材分组筛选
 	Status     string // 按素材状态筛选（pending/active/failed）
@@ -76,6 +78,9 @@ func GetAssets(filter *AssetFilter, startIdx int, num int) (assets []*Asset, tot
 	}
 	if filter.Model != "" {
 		query = query.Where("model = ?", filter.Model)
+	}
+	if filter.ChannelId > 0 {
+		query = query.Where("channel_id = ?", filter.ChannelId)
 	}
 	if filter.TenantId > 0 {
 		query = query.Where("tenant_id = ?", filter.TenantId)
@@ -135,6 +140,9 @@ func SearchAssets(filter *AssetFilter, keyword string, startIdx int, num int) (a
 	}
 	if filter.Model != "" {
 		query = query.Where("model = ?", filter.Model)
+	}
+	if filter.ChannelId > 0 {
+		query = query.Where("channel_id = ?", filter.ChannelId)
 	}
 	if filter.TenantId > 0 {
 		query = query.Where("tenant_id = ?", filter.TenantId)

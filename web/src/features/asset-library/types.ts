@@ -39,6 +39,7 @@ export const assetSchema = z.object({
   width: z.number(),
   height: z.number(),
   created_time: z.number(), // Unix timestamp
+  channel_id: z.number().optional(),
   group_id: z.number().optional(),
   upstream_group_id: z.string().optional(),
   upstream_asset_id: z.string().optional(),
@@ -52,12 +53,43 @@ export type AssetType = 'image' | 'video' | 'audio'
 export type AssetStatus = 'pending' | 'processing' | 'active' | 'failed' | 'local'
 
 // ============================================================================
+// Asset Channel Schema & Types
+// ============================================================================
+
+export const assetChannelSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  type: z.string(), // volcark / moma
+  models: z.string(), // 支持的模型列表，逗号分隔
+  enabled: z.boolean(),
+  description: z.string().optional(),
+  has_credentials: z.boolean(),
+  created_time: z.number(),
+})
+
+export type AssetChannel = z.infer<typeof assetChannelSchema>
+
+export const assetChannelFormSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  type: z.string().min(1, 'Type is required'),
+  access_key: z.string().optional().default(''),
+  secret_key: z.string().optional().default(''),
+  models: z.string().optional().default(''),
+  enabled: z.boolean().default(true),
+  description: z.string().optional().default(''),
+})
+
+export type AssetChannelFormValues = z.infer<typeof assetChannelFormSchema>
+
+// ============================================================================
 // Asset Group Schema & Types
 // ============================================================================
 
 export const assetGroupSchema = z.object({
   id: z.number(),
   user_id: z.number(),
+  channel_id: z.number().optional(),
+  model: z.string().optional(),
   upstream_group_id: z.string().optional(),
   name: z.string(),
   description: z.string().optional(),
@@ -90,6 +122,7 @@ export interface GetAssetsParams {
   page_size?: number
   type?: AssetType
   model?: string
+  channel_id?: number
   user_id?: number
   tenant_id?: number
   group_id?: number
@@ -111,6 +144,7 @@ export interface SearchAssetsParams {
   keyword?: string
   type?: AssetType
   model?: string
+  channel_id?: number
   user_id?: number
   tenant_id?: number
   group_id?: number
@@ -125,6 +159,8 @@ export interface SearchAssetsParams {
 
 export interface GetAssetGroupsParams {
   keyword?: string
+  channel_id?: number
+  model?: string
 }
 
 export interface GetAssetGroupsResponse {
