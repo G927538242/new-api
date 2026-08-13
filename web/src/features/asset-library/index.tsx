@@ -24,6 +24,8 @@ import { useTranslation } from 'react-i18next'
 import { SectionPageLayout } from '@/components/layout'
 import { StatusBadge } from '@/components/status-badge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ROLE } from '@/lib/roles'
+import { useAuthStore } from '@/stores/auth-store'
 import { toast } from 'sonner'
 
 import { getAssetChannels } from './api'
@@ -72,6 +74,8 @@ function findChannelForModel(
 
 function AssetModelTabs() {
   const { t } = useTranslation()
+  const isAdmin =
+    (useAuthStore((s) => s.auth.user?.role) ?? 0) >= ROLE.ADMIN
   const {
     currentModel,
     setCurrentModel,
@@ -152,9 +156,13 @@ function AssetModelTabs() {
   if (modelOptions.length === 0) {
     return (
       <div className='rounded-lg border border-dashed bg-muted/30 px-4 py-6 text-center'>
-        <p className='text-sm font-medium'>尚未配置素材上游渠道</p>
+        <p className='text-sm font-medium'>
+          {isAdmin ? '尚未配置素材上游渠道' : '暂无可用的素材模型'}
+        </p>
         <p className='mt-1 text-xs text-muted-foreground'>
-          请先前往「系统设置 → 运营 → 素材渠道」配置渠道（如字节官方、移动MOMA平台）及其支持的模型。
+          {isAdmin
+            ? '请先前往「素材渠道」管理页配置渠道（如字节官方、移动MOMA平台）及其支持的模型。'
+            : '请联系管理员配置素材渠道与模型。'}
         </p>
       </div>
     )
@@ -174,7 +182,7 @@ function AssetModelTabs() {
           })}
         </TabsList>
       </Tabs>
-      {currentChannel && (
+      {isAdmin && currentChannel && (
         <div className='flex items-center gap-1.5'>
           <span className='text-xs text-muted-foreground'>上游渠道：</span>
           <StatusBadge

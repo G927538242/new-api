@@ -36,6 +36,7 @@ import { Route as PricingIndexRouteImport } from './routes/pricing/index'
 import { Route as RankingsIndexRouteImport } from './routes/rankings/index'
 import { Route as SetupIndexRouteImport } from './routes/setup/index'
 import { Route as authUserResetRouteImport } from './routes/(auth)/user/reset'
+import { Route as AuthenticatedAssetChannelsIndexRouteImport } from './routes/_authenticated/asset-channels/index'
 import { Route as AuthenticatedAssetLibraryIndexRouteImport } from './routes/_authenticated/asset-library/index'
 import { Route as AuthenticatedCertificationIndexRouteImport } from './routes/_authenticated/certification/index'
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
@@ -207,6 +208,12 @@ const authUserResetRoute = authUserResetRouteImport.update({
   path: '/user/reset',
   getParentRoute: () => authRouteRoute,
 } as any)
+const AuthenticatedAssetChannelsIndexRoute =
+  AuthenticatedAssetChannelsIndexRouteImport.update({
+    id: '/asset-channels/',
+    path: '/asset-channels/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAssetLibraryIndexRoute =
   AuthenticatedAssetLibraryIndexRouteImport.update({
     id: '/asset-library/',
@@ -451,6 +458,7 @@ export interface FileRoutesByFullPath {
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/asset-channels/': typeof AuthenticatedAssetChannelsIndexRoute
   '/asset-library/': typeof AuthenticatedAssetLibraryIndexRoute
   '/certification/': typeof AuthenticatedCertificationIndexRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
@@ -513,6 +521,7 @@ export interface FileRoutesByTo {
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/asset-channels': typeof AuthenticatedAssetChannelsIndexRoute
   '/asset-library': typeof AuthenticatedAssetLibraryIndexRoute
   '/certification': typeof AuthenticatedCertificationIndexRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
@@ -579,6 +588,7 @@ export interface FileRoutesById {
   '/_authenticated/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/_authenticated/models/$section': typeof AuthenticatedModelsSectionRoute
   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/_authenticated/asset-channels/': typeof AuthenticatedAssetChannelsIndexRoute
   '/_authenticated/asset-library/': typeof AuthenticatedAssetLibraryIndexRoute
   '/_authenticated/certification/': typeof AuthenticatedCertificationIndexRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
@@ -644,6 +654,7 @@ export interface FileRouteTypes {
     | '/errors/$error'
     | '/models/$section'
     | '/usage-logs/$section'
+    | '/asset-channels/'
     | '/asset-library/'
     | '/certification/'
     | '/channels/'
@@ -706,6 +717,7 @@ export interface FileRouteTypes {
     | '/errors/$error'
     | '/models/$section'
     | '/usage-logs/$section'
+    | '/asset-channels'
     | '/asset-library'
     | '/certification'
     | '/channels'
@@ -771,6 +783,7 @@ export interface FileRouteTypes {
     | '/_authenticated/errors/$error'
     | '/_authenticated/models/$section'
     | '/_authenticated/usage-logs/$section'
+    | '/_authenticated/asset-channels/'
     | '/_authenticated/asset-library/'
     | '/_authenticated/certification/'
     | '/_authenticated/channels/'
@@ -1015,6 +1028,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/user/reset'
       preLoaderRoute: typeof authUserResetRouteImport
       parentRoute: typeof authRouteRoute
+    }
+    '/_authenticated/asset-channels/': {
+      id: '/_authenticated/asset-channels/'
+      path: '/asset-channels'
+      fullPath: '/asset-channels/'
+      preLoaderRoute: typeof AuthenticatedAssetChannelsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/asset-library/': {
       id: '/_authenticated/asset-library/'
@@ -1362,6 +1382,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedModelsSectionRoute: typeof AuthenticatedModelsSectionRoute
   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
+  AuthenticatedAssetChannelsIndexRoute: typeof AuthenticatedAssetChannelsIndexRoute
   AuthenticatedAssetLibraryIndexRoute: typeof AuthenticatedAssetLibraryIndexRoute
   AuthenticatedCertificationIndexRoute: typeof AuthenticatedCertificationIndexRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
@@ -1388,6 +1409,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedModelsSectionRoute: AuthenticatedModelsSectionRoute,
   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,
+  AuthenticatedAssetChannelsIndexRoute: AuthenticatedAssetChannelsIndexRoute,
   AuthenticatedAssetLibraryIndexRoute: AuthenticatedAssetLibraryIndexRoute,
   AuthenticatedCertificationIndexRoute: AuthenticatedCertificationIndexRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,

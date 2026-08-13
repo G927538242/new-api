@@ -71,23 +71,23 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { StatusBadge } from '@/components/status-badge'
+import { SectionPageLayout } from '@/components/layout'
 
 import {
   createAssetChannel,
   deleteAssetChannel,
   getAssetChannels,
   updateAssetChannel,
-} from '@/features/asset-library/api'
+} from './api'
 import {
   ASSET_CHANNEL_TYPE_CONFIG,
   getAssetChannelTypeOptions,
-} from '@/features/asset-library/constants'
+} from './constants'
 import {
   assetChannelFormSchema,
   type AssetChannel,
   type AssetChannelFormValues,
-} from '@/features/asset-library/types'
-import { SettingsSection } from '../components/settings-section'
+} from './types'
 
 const CHANNEL_FORM_ID = 'asset-channel-form'
 
@@ -342,7 +342,7 @@ function ChannelFormDialog({
   )
 }
 
-export function AssetChannelsSection() {
+export function AssetChannelsPage() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -392,120 +392,126 @@ export function AssetChannelsSection() {
   }
 
   return (
-    <SettingsSection title='素材渠道'>
-      <div className='space-y-4'>
-        <div className='flex items-center justify-between'>
-          <p className='text-muted-foreground text-sm'>
-            素材库按上游渠道隔离管理（如字节官方、移动MOMA平台）。每个渠道配置独立的
-            AK/SK 凭证与支持的模型，素材分组与素材均归属到「渠道 + 模型」下。
-          </p>
+    <>
+      <SectionPageLayout fixedContent>
+        <SectionPageLayout.Title>
+          <div className='flex flex-col gap-1'>
+            <span>{t('素材渠道')}</span>
+            <p className='text-muted-foreground text-sm'>
+              素材库按上游渠道隔离管理（如字节官方、移动MOMA平台）。每个渠道配置独立的
+              AK/SK 凭证与支持的模型，素材分组与素材均归属到「渠道 + 模型」下。
+            </p>
+          </div>
+        </SectionPageLayout.Title>
+        <SectionPageLayout.Actions>
           <Button size='sm' onClick={handleCreate}>
             <Plus className='h-4 w-4' />
             新建渠道
           </Button>
-        </div>
-
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>渠道名称</TableHead>
-              <TableHead>类型</TableHead>
-              <TableHead>支持的模型</TableHead>
-              <TableHead>凭证</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead className='text-right'>操作</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
+        </SectionPageLayout.Actions>
+        <SectionPageLayout.Content>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className='text-muted-foreground h-24 text-center'
-                >
-                  加载中...
-                </TableCell>
+                <TableHead>ID</TableHead>
+                <TableHead>渠道名称</TableHead>
+                <TableHead>类型</TableHead>
+                <TableHead>支持的模型</TableHead>
+                <TableHead>凭证</TableHead>
+                <TableHead>状态</TableHead>
+                <TableHead className='text-right'>操作</TableHead>
               </TableRow>
-            ) : channels.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={7}
-                  className='text-muted-foreground h-24 text-center'
-                >
-                  暂无素材渠道，请先新建渠道（如「字节官方」）。
-                </TableCell>
-              </TableRow>
-            ) : (
-              channels.map((channel) => {
-                const typeConfig = ASSET_CHANNEL_TYPE_CONFIG[channel.type]
-                return (
-                  <TableRow key={channel.id}>
-                    <TableCell className='font-mono text-xs'>
-                      {channel.id}
-                    </TableCell>
-                    <TableCell className='font-medium'>
-                      {channel.name}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge
-                        label={typeConfig?.label ?? channel.type}
-                        variant={typeConfig?.variant}
-                        copyable={false}
-                      />
-                    </TableCell>
-                    <TableCell className='text-xs'>
-                      {channel.models || '-'}
-                    </TableCell>
-                    <TableCell>
-                      {channel.has_credentials ? (
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className='text-muted-foreground h-24 text-center'
+                  >
+                    加载中...
+                  </TableCell>
+                </TableRow>
+              ) : channels.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={7}
+                    className='text-muted-foreground h-24 text-center'
+                  >
+                    暂无素材渠道，请先新建渠道（如「字节官方」）。
+                  </TableCell>
+                </TableRow>
+              ) : (
+                channels.map((channel) => {
+                  const typeConfig = ASSET_CHANNEL_TYPE_CONFIG[channel.type]
+                  return (
+                    <TableRow key={channel.id}>
+                      <TableCell className='font-mono text-xs'>
+                        {channel.id}
+                      </TableCell>
+                      <TableCell className='font-medium'>
+                        {channel.name}
+                      </TableCell>
+                      <TableCell>
                         <StatusBadge
-                          label='已配置'
-                          variant='success'
+                          label={typeConfig?.label ?? channel.type}
+                          variant={typeConfig?.variant}
                           copyable={false}
                         />
-                      ) : (
+                      </TableCell>
+                      <TableCell className='text-xs'>
+                        {channel.models || '-'}
+                      </TableCell>
+                      <TableCell>
+                        {channel.has_credentials ? (
+                          <StatusBadge
+                            label='已配置'
+                            variant='success'
+                            copyable={false}
+                          />
+                        ) : (
+                          <StatusBadge
+                            label='未配置'
+                            variant='warning'
+                            copyable={false}
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <StatusBadge
-                          label='未配置'
-                          variant='warning'
+                          label={channel.enabled ? '已启用' : '已停用'}
+                          variant={channel.enabled ? 'success' : 'neutral'}
                           copyable={false}
                         />
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge
-                        label={channel.enabled ? '已启用' : '已停用'}
-                        variant={channel.enabled ? 'success' : 'neutral'}
-                        copyable={false}
-                      />
-                    </TableCell>
-                    <TableCell className='text-right'>
-                      <div className='flex items-center justify-end gap-1'>
-                        <Button
-                          variant='ghost'
-                          size='icon-sm'
-                          onClick={() => handleEdit(channel)}
-                          aria-label='编辑渠道'
-                        >
-                          <Pencil className='h-4 w-4' />
-                        </Button>
-                        <Button
-                          variant='ghost'
-                          size='icon-sm'
-                          onClick={() => setDeletingChannel(channel)}
-                          aria-label='删除渠道'
-                        >
-                          <Trash2 className='text-destructive h-4 w-4' />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                      </TableCell>
+                      <TableCell className='text-right'>
+                        <div className='flex items-center justify-end gap-1'>
+                          <Button
+                            variant='ghost'
+                            size='icon-sm'
+                            onClick={() => handleEdit(channel)}
+                            aria-label='编辑渠道'
+                          >
+                            <Pencil className='h-4 w-4' />
+                          </Button>
+                          <Button
+                            variant='ghost'
+                            size='icon-sm'
+                            onClick={() => setDeletingChannel(channel)}
+                            aria-label='删除渠道'
+                          >
+                            <Trash2 className='text-destructive h-4 w-4' />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
+            </TableBody>
+          </Table>
+        </SectionPageLayout.Content>
+      </SectionPageLayout>
 
       <ChannelFormDialog
         open={dialogOpen}
@@ -538,6 +544,6 @@ export function AssetChannelsSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </SettingsSection>
+    </>
   )
 }

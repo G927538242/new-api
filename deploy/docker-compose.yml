@@ -1,0 +1,55 @@
+# 阿里云部署编排：new-api（自构建镜像） + Redis
+# 数据库使用阿里云 RDS MySQL（通过 SQL_DSN 连接，见 .env）
+# 使用：cd deploy && cp .env.example .env（修改配置）&& ./deploy.sh
+
+version: '3.4'
+
+services:
+  new-api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: new-api:aliyun
+    container_name: new-api
+    restart: always
+    command: --log-dir /app/logs
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - ./data:/data
+      - ./logs:/app/logs
+    environment:
+      - SQL_DSN=${SQL_DSN}
+      - REDIS_CONN_STRING=redis://:${REDIS_PASSWORD}@redis:6379
+      - TZ=Asia/Shanghai
+      - ERROR_LOG_ENABLED=true
+      - BATCH_UPDATE_ENABLED=true
+      - NODE_NAME=${NODE_NAME:-new-api-node-1}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-false}
+    depends_on:
+      - redis
+    networks:
+      - new-api-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:3000/api/status | grep -o '\"success\":\\s*true' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: always
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - new-api-network
+
+volumes:
+  redis_data:
+
+networks:
+  new-api-network:
+    driver: bridge

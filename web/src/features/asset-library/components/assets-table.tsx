@@ -46,6 +46,8 @@ import {
 import { useMediaQuery } from '@/hooks'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
 import { formatFileSize, formatTimestampToDate } from '@/lib/format'
+import { ROLE } from '@/lib/roles'
+import { useAuthStore } from '@/stores/auth-store'
 
 import { getAssetGroups, getAssets, searchAssets, syncAssetStatus } from '../api'
 import {
@@ -65,9 +67,27 @@ const route = getRouteApi('/_authenticated/asset-library/')
 
 function useAssetsColumns(
   onPreview: (asset: Asset) => void,
-  channelNames: Map<number, string>
+  channelNames: Map<number, string>,
+  isAdmin: boolean
 ): ColumnDef<Asset>[] {
   const { t } = useTranslation()
+  // 上游渠道列仅管理员可见，普通用户不暴露渠道信息
+  const channelColumn: ColumnDef<Asset> = {
+    accessorKey: 'channel_id',
+    header: t('上游渠道'),
+    meta: { mobileHidden: true },
+    cell: ({ row }) => {
+      const channelId = row.original.channel_id
+      const channelName = channelId ? channelNames.get(channelId) : undefined
+      return channelName ? (
+        <span className='text-sm'>{channelName}</span>
+      ) : (
+        <span className='text-muted-foreground text-sm'>-</span>
+      )
+    },
+    size: 120,
+  }
+
   return [
     {
       id: 'preview',
@@ -93,21 +113,7 @@ function useAssetsColumns(
       ),
       size: 220,
     },
-    {
-      accessorKey: 'channel_id',
-      header: t('上游渠道'),
-      meta: { mobileHidden: true },
-      cell: ({ row }) => {
-        const channelId = row.original.channel_id
-        const channelName = channelId ? channelNames.get(channelId) : undefined
-        return channelName ? (
-          <span className='text-sm'>{channelName}</span>
-        ) : (
-          <span className='text-muted-foreground text-sm'>-</span>
-        )
-      },
-      size: 120,
-    },
+    ...(isAdmin ? [channelColumn] : []),
     {
       accessorKey: 'type',
       header: t('Type'),
@@ -387,7 +393,10 @@ export function AssetsTable() {
     return map
   }, [channels])
 
-  const columns = useAssetsColumns(handlePreview, channelNames)
+  const isAdmin =
+    (useAuthStore((s) => s.auth.user?.role) ?? 0) >= ROLE.ADMIN
+
+  const columns = useAssetsColumns(handlePreview, channelNames, isAdmin)
 
   // 切换模型/渠道时，重置分组筛选
   useEffect(() => {
