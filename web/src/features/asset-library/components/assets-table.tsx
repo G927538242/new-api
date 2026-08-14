@@ -63,7 +63,7 @@ import type { Asset, AssetStatus, AssetType } from '../types'
 import { AssetPreviewDialog, AssetThumbnail } from './asset-preview'
 import { useAssets } from './assets-provider'
 
-const route = getRouteApi('/_authenticated/asset-library/')
+const route = getRouteApi('/_authenticated/asset-library/assets/')
 
 function useAssetsColumns(
   onPreview: (asset: Asset) => void,

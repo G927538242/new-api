@@ -12,6 +12,10 @@ logs
 web/dist
 web/node_modules
 .env
+deploy/aliyun/.env
+deploy/aliyun/dist/
+*.tar.gz
+third_party/
 one-api
 new-api
 /__debug_bin*

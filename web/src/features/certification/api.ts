@@ -6,8 +6,10 @@ import type {
   AdminCertListResponse,
   ApiResponse,
   CertificationRecord,
+  ForceCertificationPayload,
   MyCertificationResponse,
   SubmitCertificationPayload,
+  UnverifiedUserListResponse,
   UploadCertificationFileResponse,
 } from './types'
 
@@ -90,6 +92,36 @@ export async function reviewCertification(
   data: ReviewCertificationPayload
 ): Promise<ApiResponse<AdminCertItem>> {
   const res = await api.post('/api/certification/review', data, {
+    skipBusinessError: true,
+  })
+  return res.data
+}
+
+/** 管理员强制认证用户（直接标记为已认证，无需用户提交材料） */
+export async function forceCertification(
+  data: ForceCertificationPayload
+): Promise<ApiResponse<CertificationRecord>> {
+  const res = await api.post('/api/certification/force', data, {
+    skipBusinessError: true,
+  })
+  return res.data
+}
+
+/** 管理员分页查询用户（认证管理视角）。cert_status=-1 全部，0-3 按状态筛选 */
+export async function getCertUsers(params: {
+  page?: number
+  page_size?: number
+  keyword?: string
+  cert_status?: number
+} = {}): Promise<ApiResponse<UnverifiedUserListResponse>> {
+  const { page = 1, page_size = 10, keyword = '', cert_status = -1 } = params
+  const queryParams = new URLSearchParams()
+  queryParams.set('page', String(page))
+  queryParams.set('page_size', String(page_size))
+  queryParams.set('cert_status', String(cert_status))
+  if (keyword) queryParams.set('keyword', keyword)
+  const res = await api.get('/api/certification/users', {
+    params: queryParams,
     skipBusinessError: true,
   })
   return res.data

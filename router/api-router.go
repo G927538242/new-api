@@ -313,8 +313,10 @@ func SetApiRouter(router *gin.Engine) {
 		certAdminRoute.Use(middleware.AdminAuth())
 		{
 			certAdminRoute.GET("/list", controller.AdminListCertifications)
+			certAdminRoute.GET("/users", controller.AdminListUsersForCert)
 			certAdminRoute.GET("/:id", controller.AdminGetCertification)
 			certAdminRoute.POST("/review", controller.AdminReviewCertification)
+			certAdminRoute.POST("/force", controller.AdminForceCertification)
 		}
 
 		usageRoute := apiRouter.Group("/usage")

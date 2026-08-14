@@ -36,9 +36,10 @@ export const CERT_TYPE_LABELS: Record<CertType, string> = {
   enterprise: '企业认证',
 }
 
-/** 管理端筛选状态选项 */
+/** 管理端筛选状态选项（-2 为未认证用户视图） */
 export const ADMIN_STATUS_OPTIONS = [
   { value: -1, label: '全部' },
+  { value: -2, label: '未认证用户' },
   { value: 0, label: '待审核' },
   { value: 1, label: '已通过' },
   { value: 2, label: '已驳回' },

@@ -20,7 +20,6 @@ import React, { useState } from 'react'
 
 import useDialogState from '@/hooks/use-dialog'
 
-import { ASSET_MODELS } from '../constants'
 import type { Asset, AssetChannel, AssetGroup, AssetsDialogType } from '../types'
 
 type AssetsContextType = {
@@ -56,7 +55,7 @@ export function AssetsProvider({
   const [currentRow, setCurrentRow] = useState<Asset | null>(null)
   const [currentGroupId, setCurrentGroupId] = useState<number | null>(null)
   const [currentGroup, setCurrentGroup] = useState<AssetGroup | null>(null)
-  const [currentModel, setCurrentModel] = useState<string>(ASSET_MODELS.SENDANCE_2_0)
+  const [currentModel, setCurrentModel] = useState<string>('')
   const [channels, setChannels] = useState<AssetChannel[]>([])
   const [currentChannel, setCurrentChannel] = useState<AssetChannel | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)

@@ -26,6 +26,7 @@ import { Route as errors403RouteImport } from './routes/(errors)/403'
 import { Route as errors404RouteImport } from './routes/(errors)/404'
 import { Route as errors500RouteImport } from './routes/(errors)/500'
 import { Route as errors503RouteImport } from './routes/(errors)/503'
+import { Route as AuthenticatedAssetLibraryRouteRouteImport } from './routes/_authenticated/asset-library/route'
 import { Route as AuthenticatedChat2linkRouteImport } from './routes/_authenticated/chat2link'
 import { Route as AuthenticatedSystemSettingsRouteRouteImport } from './routes/_authenticated/system-settings/route'
 import { Route as ActivityIndexRouteImport } from './routes/activity/index'
@@ -59,6 +60,9 @@ import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedWalletIndexRouteImport } from './routes/_authenticated/wallet/index'
 import { Route as PricingModelIdIndexRouteImport } from './routes/pricing/$modelId/index'
 import { Route as AuthenticatedAdminCertificationsIndexRouteImport } from './routes/_authenticated/admin/certifications/index'
+import { Route as AuthenticatedAssetLibraryAssetsIndexRouteImport } from './routes/_authenticated/asset-library/assets/index'
+import { Route as AuthenticatedAssetLibraryGroupsIndexRouteImport } from './routes/_authenticated/asset-library/groups/index'
+import { Route as AuthenticatedAssetLibraryOverviewIndexRouteImport } from './routes/_authenticated/asset-library/overview/index'
 import { Route as AuthenticatedSystemSettingsAuthIndexRouteImport } from './routes/_authenticated/system-settings/auth/index'
 import { Route as AuthenticatedSystemSettingsAuthSectionRouteImport } from './routes/_authenticated/system-settings/auth/$section'
 import { Route as AuthenticatedSystemSettingsBillingIndexRouteImport } from './routes/_authenticated/system-settings/billing/index'
@@ -157,6 +161,12 @@ const errors503Route = errors503RouteImport.update({
   path: '/503',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAssetLibraryRouteRoute =
+  AuthenticatedAssetLibraryRouteRouteImport.update({
+    id: '/asset-library',
+    path: '/asset-library',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedChat2linkRoute = AuthenticatedChat2linkRouteImport.update({
   id: '/chat2link',
   path: '/chat2link',
@@ -216,9 +226,9 @@ const AuthenticatedAssetChannelsIndexRoute =
   } as any)
 const AuthenticatedAssetLibraryIndexRoute =
   AuthenticatedAssetLibraryIndexRouteImport.update({
-    id: '/asset-library/',
-    path: '/asset-library/',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAssetLibraryRouteRoute,
   } as any)
 const AuthenticatedCertificationIndexRoute =
   AuthenticatedCertificationIndexRouteImport.update({
@@ -342,6 +352,24 @@ const AuthenticatedAdminCertificationsIndexRoute =
     path: '/admin/certifications/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAssetLibraryAssetsIndexRoute =
+  AuthenticatedAssetLibraryAssetsIndexRouteImport.update({
+    id: '/assets/',
+    path: '/assets/',
+    getParentRoute: () => AuthenticatedAssetLibraryRouteRoute,
+  } as any)
+const AuthenticatedAssetLibraryGroupsIndexRoute =
+  AuthenticatedAssetLibraryGroupsIndexRouteImport.update({
+    id: '/groups/',
+    path: '/groups/',
+    getParentRoute: () => AuthenticatedAssetLibraryRouteRoute,
+  } as any)
+const AuthenticatedAssetLibraryOverviewIndexRoute =
+  AuthenticatedAssetLibraryOverviewIndexRouteImport.update({
+    id: '/overview/',
+    path: '/overview/',
+    getParentRoute: () => AuthenticatedAssetLibraryRouteRoute,
+  } as any)
 const AuthenticatedSystemSettingsAuthIndexRoute =
   AuthenticatedSystemSettingsAuthIndexRouteImport.update({
     id: '/auth/',
@@ -431,6 +459,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/user-agreement': typeof UserAgreementRoute
+  '/asset-library': typeof AuthenticatedAssetLibraryRouteRouteWithChildren
   '/system-settings': typeof AuthenticatedSystemSettingsRouteRouteWithChildren
   '/forgot-password': typeof authForgotPasswordRoute
   '/oauth': typeof authOauthRoute
@@ -483,6 +512,9 @@ export interface FileRoutesByFullPath {
   '/system-settings/security/$section': typeof AuthenticatedSystemSettingsSecuritySectionRoute
   '/system-settings/site/$section': typeof AuthenticatedSystemSettingsSiteSectionRoute
   '/admin/certifications/': typeof AuthenticatedAdminCertificationsIndexRoute
+  '/asset-library/assets/': typeof AuthenticatedAssetLibraryAssetsIndexRoute
+  '/asset-library/groups/': typeof AuthenticatedAssetLibraryGroupsIndexRoute
+  '/asset-library/overview/': typeof AuthenticatedAssetLibraryOverviewIndexRoute
   '/system-settings/auth/': typeof AuthenticatedSystemSettingsAuthIndexRoute
   '/system-settings/billing/': typeof AuthenticatedSystemSettingsBillingIndexRoute
   '/system-settings/content/': typeof AuthenticatedSystemSettingsContentIndexRoute
@@ -546,6 +578,9 @@ export interface FileRoutesByTo {
   '/system-settings/security/$section': typeof AuthenticatedSystemSettingsSecuritySectionRoute
   '/system-settings/site/$section': typeof AuthenticatedSystemSettingsSiteSectionRoute
   '/admin/certifications': typeof AuthenticatedAdminCertificationsIndexRoute
+  '/asset-library/assets': typeof AuthenticatedAssetLibraryAssetsIndexRoute
+  '/asset-library/groups': typeof AuthenticatedAssetLibraryGroupsIndexRoute
+  '/asset-library/overview': typeof AuthenticatedAssetLibraryOverviewIndexRoute
   '/system-settings/auth': typeof AuthenticatedSystemSettingsAuthIndexRoute
   '/system-settings/billing': typeof AuthenticatedSystemSettingsBillingIndexRoute
   '/system-settings/content': typeof AuthenticatedSystemSettingsContentIndexRoute
@@ -561,6 +596,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/user-agreement': typeof UserAgreementRoute
+  '/_authenticated/asset-library': typeof AuthenticatedAssetLibraryRouteRouteWithChildren
   '/_authenticated/system-settings': typeof AuthenticatedSystemSettingsRouteRouteWithChildren
   '/(auth)/forgot-password': typeof authForgotPasswordRoute
   '/(auth)/oauth': typeof authOauthRoute
@@ -613,6 +649,9 @@ export interface FileRoutesById {
   '/_authenticated/system-settings/security/$section': typeof AuthenticatedSystemSettingsSecuritySectionRoute
   '/_authenticated/system-settings/site/$section': typeof AuthenticatedSystemSettingsSiteSectionRoute
   '/_authenticated/admin/certifications/': typeof AuthenticatedAdminCertificationsIndexRoute
+  '/_authenticated/asset-library/assets/': typeof AuthenticatedAssetLibraryAssetsIndexRoute
+  '/_authenticated/asset-library/groups/': typeof AuthenticatedAssetLibraryGroupsIndexRoute
+  '/_authenticated/asset-library/overview/': typeof AuthenticatedAssetLibraryOverviewIndexRoute
   '/_authenticated/system-settings/auth/': typeof AuthenticatedSystemSettingsAuthIndexRoute
   '/_authenticated/system-settings/billing/': typeof AuthenticatedSystemSettingsBillingIndexRoute
   '/_authenticated/system-settings/content/': typeof AuthenticatedSystemSettingsContentIndexRoute
@@ -627,6 +666,7 @@ export interface FileRouteTypes {
     | '/'
     | '/privacy-policy'
     | '/user-agreement'
+    | '/asset-library'
     | '/system-settings'
     | '/forgot-password'
     | '/oauth'
@@ -679,6 +719,9 @@ export interface FileRouteTypes {
     | '/system-settings/security/$section'
     | '/system-settings/site/$section'
     | '/admin/certifications/'
+    | '/asset-library/assets/'
+    | '/asset-library/groups/'
+    | '/asset-library/overview/'
     | '/system-settings/auth/'
     | '/system-settings/billing/'
     | '/system-settings/content/'
@@ -742,6 +785,9 @@ export interface FileRouteTypes {
     | '/system-settings/security/$section'
     | '/system-settings/site/$section'
     | '/admin/certifications'
+    | '/asset-library/assets'
+    | '/asset-library/groups'
+    | '/asset-library/overview'
     | '/system-settings/auth'
     | '/system-settings/billing'
     | '/system-settings/content'
@@ -756,6 +802,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/privacy-policy'
     | '/user-agreement'
+    | '/_authenticated/asset-library'
     | '/_authenticated/system-settings'
     | '/(auth)/forgot-password'
     | '/(auth)/oauth'
@@ -808,6 +855,9 @@ export interface FileRouteTypes {
     | '/_authenticated/system-settings/security/$section'
     | '/_authenticated/system-settings/site/$section'
     | '/_authenticated/admin/certifications/'
+    | '/_authenticated/asset-library/assets/'
+    | '/_authenticated/asset-library/groups/'
+    | '/_authenticated/asset-library/overview/'
     | '/_authenticated/system-settings/auth/'
     | '/_authenticated/system-settings/billing/'
     | '/_authenticated/system-settings/content/'
@@ -959,6 +1009,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof errors503RouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/asset-library': {
+      id: '/_authenticated/asset-library'
+      path: '/asset-library'
+      fullPath: '/asset-library'
+      preLoaderRoute: typeof AuthenticatedAssetLibraryRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/chat2link': {
       id: '/_authenticated/chat2link'
       path: '/chat2link'
@@ -1038,10 +1095,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/asset-library/': {
       id: '/_authenticated/asset-library/'
-      path: '/asset-library'
+      path: '/'
       fullPath: '/asset-library/'
       preLoaderRoute: typeof AuthenticatedAssetLibraryIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedAssetLibraryRouteRoute
     }
     '/_authenticated/certification/': {
       id: '/_authenticated/certification/'
@@ -1190,6 +1247,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCertificationsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/asset-library/assets/': {
+      id: '/_authenticated/asset-library/assets/'
+      path: '/assets'
+      fullPath: '/asset-library/assets/'
+      preLoaderRoute: typeof AuthenticatedAssetLibraryAssetsIndexRouteImport
+      parentRoute: typeof AuthenticatedAssetLibraryRouteRoute
+    }
+    '/_authenticated/asset-library/groups/': {
+      id: '/_authenticated/asset-library/groups/'
+      path: '/groups'
+      fullPath: '/asset-library/groups/'
+      preLoaderRoute: typeof AuthenticatedAssetLibraryGroupsIndexRouteImport
+      parentRoute: typeof AuthenticatedAssetLibraryRouteRoute
+    }
+    '/_authenticated/asset-library/overview/': {
+      id: '/_authenticated/asset-library/overview/'
+      path: '/overview'
+      fullPath: '/asset-library/overview/'
+      preLoaderRoute: typeof AuthenticatedAssetLibraryOverviewIndexRouteImport
+      parentRoute: typeof AuthenticatedAssetLibraryRouteRoute
+    }
     '/_authenticated/system-settings/auth/': {
       id: '/_authenticated/system-settings/auth/'
       path: '/auth'
@@ -1317,6 +1395,29 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
   authRouteRouteChildren,
 )
 
+interface AuthenticatedAssetLibraryRouteRouteChildren {
+  AuthenticatedAssetLibraryIndexRoute: typeof AuthenticatedAssetLibraryIndexRoute
+  AuthenticatedAssetLibraryAssetsIndexRoute: typeof AuthenticatedAssetLibraryAssetsIndexRoute
+  AuthenticatedAssetLibraryGroupsIndexRoute: typeof AuthenticatedAssetLibraryGroupsIndexRoute
+  AuthenticatedAssetLibraryOverviewIndexRoute: typeof AuthenticatedAssetLibraryOverviewIndexRoute
+}
+
+const AuthenticatedAssetLibraryRouteRouteChildren: AuthenticatedAssetLibraryRouteRouteChildren =
+  {
+    AuthenticatedAssetLibraryIndexRoute: AuthenticatedAssetLibraryIndexRoute,
+    AuthenticatedAssetLibraryAssetsIndexRoute:
+      AuthenticatedAssetLibraryAssetsIndexRoute,
+    AuthenticatedAssetLibraryGroupsIndexRoute:
+      AuthenticatedAssetLibraryGroupsIndexRoute,
+    AuthenticatedAssetLibraryOverviewIndexRoute:
+      AuthenticatedAssetLibraryOverviewIndexRoute,
+  }
+
+const AuthenticatedAssetLibraryRouteRouteWithChildren =
+  AuthenticatedAssetLibraryRouteRoute._addFileChildren(
+    AuthenticatedAssetLibraryRouteRouteChildren,
+  )
+
 interface AuthenticatedSystemSettingsRouteRouteChildren {
   AuthenticatedSystemSettingsIndexRoute: typeof AuthenticatedSystemSettingsIndexRoute
   AuthenticatedSystemSettingsAuthSectionRoute: typeof AuthenticatedSystemSettingsAuthSectionRoute
@@ -1375,6 +1476,7 @@ const AuthenticatedSystemSettingsRouteRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAssetLibraryRouteRoute: typeof AuthenticatedAssetLibraryRouteRouteWithChildren
   AuthenticatedSystemSettingsRouteRoute: typeof AuthenticatedSystemSettingsRouteRouteWithChildren
   AuthenticatedChat2linkRoute: typeof AuthenticatedChat2linkRoute
   AuthenticatedChatChatIdRoute: typeof AuthenticatedChatChatIdRoute
@@ -1383,7 +1485,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedModelsSectionRoute: typeof AuthenticatedModelsSectionRoute
   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
   AuthenticatedAssetChannelsIndexRoute: typeof AuthenticatedAssetChannelsIndexRoute
-  AuthenticatedAssetLibraryIndexRoute: typeof AuthenticatedAssetLibraryIndexRoute
   AuthenticatedCertificationIndexRoute: typeof AuthenticatedCertificationIndexRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
@@ -1401,6 +1502,8 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAssetLibraryRouteRoute:
+    AuthenticatedAssetLibraryRouteRouteWithChildren,
   AuthenticatedSystemSettingsRouteRoute:
     AuthenticatedSystemSettingsRouteRouteWithChildren,
   AuthenticatedChat2linkRoute: AuthenticatedChat2linkRoute,
@@ -1410,7 +1513,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedModelsSectionRoute: AuthenticatedModelsSectionRoute,
   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,
   AuthenticatedAssetChannelsIndexRoute: AuthenticatedAssetChannelsIndexRoute,
-  AuthenticatedAssetLibraryIndexRoute: AuthenticatedAssetLibraryIndexRoute,
   AuthenticatedCertificationIndexRoute: AuthenticatedCertificationIndexRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,

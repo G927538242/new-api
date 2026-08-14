@@ -36,15 +36,18 @@ import {
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 
-import { getCertificationDetail, getCertifications, reviewCertification } from '../api'
+import { getCertificationDetail, getCertifications, forceCertification, getCertUsers, reviewCertification } from '../api'
 import {
   ADMIN_STATUS_OPTIONS,
   CERT_RECORD_STATUS_BADGE_VARIANTS,
   CERT_RECORD_STATUS_LABELS,
+  CERT_STATUS_LABELS,
   CERT_TYPE_LABELS,
 } from '../constants'
-import type { AdminCertItem, CertRecordStatus } from '../types'
+import type { AdminCertItem, CertRecordStatus, CertType, UnverifiedUser } from '../types'
 import { CertImage } from '../components/certification-upload'
+import { searchUsers } from '@/features/users/api'
+import type { User } from '@/features/users/types'
 
 function formatTime(ts: number): string {
   if (!ts) return '-'
@@ -280,6 +283,247 @@ function CertificationDetailDialog({ item, open, onOpenChange }: DetailDialogPro
 }
 
 // ─────────────────────────────────────────────────────────────
+// 强制认证对话框（管理员直接标记用户已认证，无需用户提交材料）
+// ─────────────────────────────────────────────────────────────
+
+function ForceCertificationDialog({
+  open,
+  onOpenChange,
+  initialUser,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  initialUser?: UnverifiedUser | null
+}) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [searchInput, setSearchInput] = React.useState('')
+  const [searchText, setSearchText] = React.useState('')
+  const [selected, setSelected] = React.useState<User | null>(null)
+  const [type, setType] = React.useState<CertType>('personal')
+  const [realName, setRealName] = React.useState('')
+  const [idCardNo, setIdCardNo] = React.useState('')
+
+  // 从"未认证用户"列表直接发起强制认证时，预设已选用户
+  React.useEffect(() => {
+    if (open && initialUser) {
+      setSelected({
+        id: initialUser.id,
+        username: initialUser.username,
+        email: initialUser.email || '',
+        display_name: initialUser.display_name || '',
+        cert_status: initialUser.cert_status ?? 0,
+      } as User)
+      setRealName(initialUser.display_name || '')
+    }
+  }, [open, initialUser])
+
+  // 按关键字搜索全量用户（含未提交认证的用户）
+  const searchQuery = useQuery({
+    queryKey: ['admin-certification-user-search', searchText],
+    queryFn: () => searchUsers({ keyword: searchText, page_size: 10 }),
+    enabled: open && searchText.trim().length > 0,
+  })
+  const searchItems = searchQuery.data?.data?.items ?? []
+
+  const forceMutation = useMutation({
+    mutationFn: forceCertification,
+    onSuccess: (res) => {
+      if (res.success) {
+        toast.success('强制认证成功')
+        onOpenChange(false)
+        setSelected(null)
+        setRealName('')
+        setIdCardNo('')
+        queryClient.invalidateQueries({ queryKey: ['admin-certifications'] })
+      } else {
+        toast.error(res.message || t('Operation failed'))
+      }
+    },
+    onError: () => toast.error(t('Operation failed')),
+  })
+
+  const handleSubmit = () => {
+    if (!selected) {
+      toast.error('请先搜索并选择要认证的用户')
+      return
+    }
+    if (!realName.trim()) {
+      toast.error('请填写姓名/企业名称')
+      return
+    }
+    forceMutation.mutate({
+      user_id: selected.id,
+      type,
+      real_name: realName.trim(),
+      id_card_no: idCardNo.trim() || undefined,
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className='max-w-lg'>
+        <DialogHeader>
+          <DialogTitle>强制认证</DialogTitle>
+          <DialogDescription>
+            先搜索目标用户（包括未提交认证的客户），确认后直接标记为已认证。请谨慎操作。
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className='space-y-4'>
+          {/* 用户搜索 */}
+          <div className='space-y-2'>
+            <Label htmlFor='force-user-search'>搜索用户（用户名/邮箱/昵称）</Label>
+            <div className='flex gap-2'>
+              <Input
+                id='force-user-search'
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') setSearchText(searchInput.trim())
+                }}
+                placeholder='输入关键字后回车搜索，如手机号或邮箱'
+              />
+              <Button
+                variant='outline'
+                type='button'
+                onClick={() => setSearchText(searchInput.trim())}
+                disabled={!searchInput.trim()}
+              >
+                <Search className='size-4' />
+                搜索
+              </Button>
+            </div>
+
+            {searchText.trim() && (
+              <div className='max-h-48 overflow-y-auto rounded-lg border'>
+                {searchQuery.isLoading ? (
+                  <div className='p-3 text-sm text-muted-foreground'>搜索中...</div>
+                ) : searchItems.length === 0 ? (
+                  <div className='p-3 text-sm text-muted-foreground'>未找到匹配用户</div>
+                ) : (
+                  searchItems.map((user) => (
+                    <button
+                      key={user.id}
+                      type='button'
+                      className={`flex w-full items-center justify-between gap-3 border-b px-3 py-2 text-left text-sm transition-colors last:border-b-0 hover:bg-muted/50 ${
+                        selected?.id === user.id ? 'bg-muted/70' : ''
+                      }`}
+                      onClick={() => {
+                        setSelected(user)
+                        // 若已有认证信息则预填姓名，方便快速操作
+                        setRealName((prev) => prev || user.display_name || '')
+                      }}
+                    >
+                      <span className='min-w-0'>
+                        <span className='block truncate font-medium'>
+                          {user.username}
+                          {user.display_name ? `（${user.display_name}）` : ''}
+                        </span>
+                        <span className='block truncate text-xs text-muted-foreground'>
+                          ID: {user.id} · {user.email || '无邮箱'}
+                        </span>
+                      </span>
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                          user.cert_status === 0
+                            ? 'bg-muted text-muted-foreground'
+                            : user.cert_status === 1
+                              ? 'bg-warning/15 text-warning'
+                              : user.cert_status === 2
+                                ? 'bg-success/15 text-success'
+                                : 'bg-destructive/15 text-destructive'
+                        }`}
+                      >
+                        {CERT_STATUS_LABELS[(user.cert_status ?? 0) as keyof typeof CERT_STATUS_LABELS]}
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          {selected && (
+            <div className='flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2 text-sm'>
+              <span className='truncate'>
+                已选择：<span className='font-medium'>{selected.username}</span>
+                <span className='text-muted-foreground'> (ID: {selected.id})</span>
+              </span>
+              <Button
+                variant='ghost'
+                size='sm'
+                onClick={() => setSelected(null)}
+              >
+                取消选择
+              </Button>
+            </div>
+          )}
+
+          <div className='space-y-2'>
+            <Label>认证类型</Label>
+            <Select
+              value={type}
+              onValueChange={(v) => setType(v as CertType)}
+            >
+              <SelectTrigger className='w-full'>
+                <SelectValue placeholder='选择认证类型'>
+                  {CERT_TYPE_LABELS[type]}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(CERT_TYPE_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className='space-y-2'>
+            <Label htmlFor='force-realname'>
+              {type === 'personal' ? '真实姓名' : '企业名称'}
+            </Label>
+            <Input
+              id='force-realname'
+              value={realName}
+              onChange={(e) => setRealName(e.target.value)}
+              placeholder={type === 'personal' ? '请输入真实姓名' : '请输入企业名称'}
+            />
+          </div>
+
+          <div className='space-y-2'>
+            <Label htmlFor='force-idcard'>
+              {type === 'personal' ? '身份证号（选填）' : '统一社会信用代码（选填）'}
+            </Label>
+            <Input
+              id='force-idcard'
+              value={idCardNo}
+              onChange={(e) => setIdCardNo(e.target.value)}
+              placeholder='选填'
+            />
+          </div>
+        </div>
+
+        <DialogFooter className='gap-2'>
+          <Button variant='outline' onClick={() => onOpenChange(false)}>
+            取消
+          </Button>
+          <Button
+            disabled={forceMutation.isPending}
+            onClick={handleSubmit}
+          >
+            <ShieldCheck className='size-4' />
+            确认认证
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
 // 认证审核页面
 // ─────────────────────────────────────────────────────────────
 
@@ -292,19 +536,39 @@ export function CertificationAdminPage() {
   const [keyword, setKeyword] = React.useState('')
   const [detail, setDetail] = React.useState<AdminCertItem | null>(null)
   const [detailOpen, setDetailOpen] = React.useState(false)
+  const [forceOpen, setForceOpen] = React.useState(false)
+  const [forceTarget, setForceTarget] = React.useState<UnverifiedUser | null>(null)
+  // "全部"与"未认证用户"均为用户维度视图（全部可见未认证用户）
+  const isUserView = status === -1 || status === -2
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['admin-certifications', page, status, keyword],
-    queryFn: () => getCertifications({ page, page_size: pageSize, status, keyword }),
+    queryFn: () =>
+      (isUserView
+        ? getCertUsers({
+            page,
+            page_size: pageSize,
+            keyword,
+            cert_status: status === -2 ? 0 : -1,
+          })
+        : getCertifications({ page, page_size: pageSize, status, keyword })
+      ).then(
+        (res) => res.data
+      ) as Promise<{ items: (AdminCertItem | UnverifiedUser)[]; total: number }>,
   })
 
-  const items = data?.data?.items ?? []
-  const total = data?.data?.total ?? 0
+  const items = data?.items ?? []
+  const total = data?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
   const openDetail = (item: AdminCertItem) => {
     setDetail(item)
     setDetailOpen(true)
+  }
+
+  const openForceFor = (user: UnverifiedUser) => {
+    setForceTarget(user)
+    setForceOpen(true)
   }
 
   return (
@@ -348,21 +612,43 @@ export function CertificationAdminPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <Button
+                  className='ml-auto'
+                  onClick={() => {
+                    setForceTarget(null)
+                    setForceOpen(true)
+                  }}
+                >
+                  <ShieldCheck className='size-4' />
+                  强制认证
+                </Button>
               </div>
 
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>用户</TableHead>
-                    <TableHead>认证类型</TableHead>
-                    <TableHead>姓名/企业名</TableHead>
-                    <TableHead>所属企业</TableHead>
-                    <TableHead>证件号</TableHead>
-                    <TableHead>状态</TableHead>
-                    <TableHead>提交时间</TableHead>
-                    <TableHead className='text-right'>操作</TableHead>
-                  </TableRow>
+                  {isUserView ? (
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>用户名</TableHead>
+                      <TableHead>邮箱</TableHead>
+                      <TableHead>昵称</TableHead>
+                      <TableHead>认证状态</TableHead>
+                      <TableHead>注册时间</TableHead>
+                      <TableHead className='text-right'>操作</TableHead>
+                    </TableRow>
+                  ) : (
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>用户</TableHead>
+                      <TableHead>认证类型</TableHead>
+                      <TableHead>姓名/企业名</TableHead>
+                      <TableHead>所属企业</TableHead>
+                      <TableHead>证件号</TableHead>
+                      <TableHead>状态</TableHead>
+                      <TableHead>提交时间</TableHead>
+                      <TableHead className='text-right'>操作</TableHead>
+                    </TableRow>
+                  )}
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
@@ -374,11 +660,54 @@ export function CertificationAdminPage() {
                   ) : items.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={9} className='h-24 text-center text-muted-foreground'>
-                        暂无认证记录
+                        {isUserView ? '暂无用户' : '暂无认证记录'}
                       </TableCell>
                     </TableRow>
+                  ) : isUserView ? (
+                    (items as UnverifiedUser[]).map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className='font-mono text-xs'>{user.id}</TableCell>
+                        <TableCell>
+                          <span className='font-medium'>{user.username || '-'}</span>
+                        </TableCell>
+                        <TableCell className='text-xs'>{user.email || '-'}</TableCell>
+                        <TableCell className='max-w-40 truncate text-xs'>
+                          {user.display_name || '-'}
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                              user.cert_status === 0
+                                ? 'bg-muted text-muted-foreground'
+                                : user.cert_status === 1
+                                  ? 'bg-warning/15 text-warning'
+                                  : user.cert_status === 2
+                                    ? 'bg-success/15 text-success'
+                                    : 'bg-destructive/15 text-destructive'
+                            }`}
+                          >
+                            {CERT_STATUS_LABELS[
+                              (user.cert_status ?? 0) as keyof typeof CERT_STATUS_LABELS
+                            ]}
+                          </span>
+                        </TableCell>
+                        <TableCell className='text-xs whitespace-nowrap'>
+                          {formatTime(user.created_at)}
+                        </TableCell>
+                        <TableCell className='text-right'>
+                          {user.cert_status === 0 ? (
+                            <Button variant='outline' size='sm' onClick={() => openForceFor(user)}>
+                              <ShieldCheck className='size-4' />
+                              强制认证
+                            </Button>
+                          ) : (
+                            <span className='text-xs text-muted-foreground'>-</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
                   ) : (
-                    items.map((item) => (
+                    (items as AdminCertItem[]).map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className='font-mono text-xs'>{item.id}</TableCell>
                         <TableCell>
@@ -453,6 +782,15 @@ export function CertificationAdminPage() {
         item={detail}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+      />
+
+      <ForceCertificationDialog
+        open={forceOpen}
+        onOpenChange={(open) => {
+          if (!open) setForceTarget(null)
+          setForceOpen(open)
+        }}
+        initialUser={forceTarget}
       />
     </>
   )

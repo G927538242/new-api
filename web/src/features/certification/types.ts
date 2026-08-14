@@ -76,3 +76,27 @@ export interface AdminCertDetailResponse {
   parent_user_id?: number
   parent_enterprise_name?: string
 }
+
+/** 管理员强制认证请求体 */
+export interface ForceCertificationPayload {
+  user_id?: number
+  account?: string
+  type: CertType
+  real_name: string
+  id_card_no?: string
+}
+
+/** 未认证用户（用于认证审核页"未认证用户"视图） */
+export interface UnverifiedUser {
+  id: number
+  username: string
+  email: string
+  display_name: string
+  created_at: number
+  cert_status: number
+}
+
+export interface UnverifiedUserListResponse {
+  items: UnverifiedUser[]
+  total: number
+}

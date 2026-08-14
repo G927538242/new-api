@@ -400,6 +400,132 @@ func AdminReviewCertification(c *gin.Context) {
 	common.ApiSuccess(c, cert)
 }
 
+// AdminListUsersForCert 管理员分页查询用户（认证管理视角）。
+// cert_status=-1 返回全部用户（含未认证用户），0-3 按认证状态筛选。
+func AdminListUsersForCert(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 10
+	}
+	keyword := strings.TrimSpace(c.Query("keyword"))
+	certStatus, _ := strconv.Atoi(c.DefaultQuery("cert_status", "-1"))
+
+	query := model.DB.Model(&model.User{})
+	if certStatus >= 0 {
+		query = query.Where("cert_status = ?", certStatus)
+	}
+	if keyword != "" {
+		like := "%" + keyword + "%"
+		query = query.Where("username LIKE ? OR email LIKE ? OR display_name LIKE ?", like, like, like)
+	}
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	var users []*model.User
+	if err := query.Select("id, username, email, display_name, created_at, cert_status").
+		Order("id desc").
+		Limit(pageSize).
+		Offset((page - 1) * pageSize).
+		Find(&users).Error; err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, gin.H{
+		"items": users,
+		"total": total,
+	})
+}
+
+// AdminForceCertificationRequest 强制认证请求体
+type AdminForceCertificationRequest struct {
+	UserId   int    `json:"user_id"`
+	Account  string `json:"account"` // 用户名或邮箱（user_id 为空时使用）
+	Type     string `json:"type"`
+	RealName string `json:"real_name"`
+	IdCardNo string `json:"id_card_no"`
+}
+
+// AdminForceCertification 管理员强制认证用户（直接标记为已认证，无需用户提交材料）
+func AdminForceCertification(c *gin.Context) {
+	var req AdminForceCertificationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.ApiErrorMsg(c, "无效的请求参数")
+		return
+	}
+
+	req.Type = strings.TrimSpace(req.Type)
+	req.RealName = strings.TrimSpace(req.RealName)
+	req.IdCardNo = strings.TrimSpace(req.IdCardNo)
+	req.Account = strings.TrimSpace(req.Account)
+
+	if !certTypeAllowed(req.Type) {
+		common.ApiErrorMsg(c, "认证类型无效")
+		return
+	}
+	if req.RealName == "" {
+		common.ApiErrorMsg(c, "请填写姓名/企业名称")
+		return
+	}
+
+	// 定位用户：优先 user_id，否则按用户名/邮箱
+	var user *model.User
+	var err error
+	if req.UserId > 0 {
+		user, err = model.GetUserById(req.UserId, false)
+	} else if req.Account != "" {
+		var lookup model.User
+		err = model.DB.Select("id, username, email, display_name, parent_user_id, cert_status").
+			Where("username = ? OR email = ?", req.Account, req.Account).
+			First(&lookup).Error
+		if err == nil {
+			user = &lookup
+		}
+	} else {
+		common.ApiErrorMsg(c, "请提供用户ID或用户名/邮箱")
+		return
+	}
+	if err != nil {
+		common.ApiErrorMsg(c, "用户不存在")
+		return
+	}
+
+	// 已认证且类型相同时提示，避免重复记录
+	if user.CertStatus == model.CertStatusApproved {
+		if latestCert, cerr := model.GetLatestCertificationByUserId(user.Id); cerr == nil &&
+			latestCert != nil && latestCert.Type == req.Type {
+			common.ApiErrorMsg(c, "该用户已完成该类型认证，无需重复操作")
+			return
+		}
+	}
+
+	cert := &model.UserCertification{
+		UserId:       user.Id,
+		Type:         req.Type,
+		Status:       1, // 已通过
+		RealName:     req.RealName,
+		IdCardNo:     req.IdCardNo,
+		RejectReason: "",
+	}
+	if err := model.InsertCertification(cert); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if err := model.UpdateUserCertStatus(user.Id, model.CertStatusApproved); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	model.RecordLog(user.Id, model.LogTypeSystem, "管理员强制认证通过（类型："+req.Type+"）")
+	logger.LogInfo(c, fmt.Sprintf("certification force-approved by admin: user=%d cert=%d type=%s", user.Id, cert.Id, req.Type))
+
+	common.ApiSuccess(c, cert)
+}
+
 // ServeCertificationFile 查看认证证件图片（仅本人或管理员可访问）
 func ServeCertificationFile(c *gin.Context) {
 	key := c.Param("key")

@@ -14,7 +14,7 @@ services:
     restart: always
     command: --log-dir /app/logs
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-4340}:3000"
     volumes:
       - ./data:/data
       - ./logs:/app/logs

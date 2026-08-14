@@ -20,7 +20,7 @@ import DOMPurify from 'dompurify'
 import * as katex from 'katex'
 
 import 'katex/dist/katex.min.css'
-import { Marked, Renderer, type MarkedExtension, type Tokens } from 'marked'
+import { Marked, Renderer, type MarkedExtension, type Token, type Tokens } from 'marked'
 import { useMemo } from 'react'
 
 import { cn } from '@/lib/utils'
@@ -602,6 +602,41 @@ function renderSequenceDiagram(source: string): string {
   `
 }
 
+export function slugifyHeading(text: string): string {
+  const plainText = text
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/[`*_#]/g, '')
+    .trim()
+  const slug = plainText
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '')
+
+  return slug || 'section'
+}
+
+const headingIdCounts = new Map<string, number>()
+
+function nextHeadingId(slug: string): string {
+  const count = headingIdCounts.get(slug) ?? 0
+  headingIdCounts.set(slug, count + 1)
+
+  return count === 0 ? slug : `${slug}-${count}`
+}
+
+export interface HeadingAnchor {
+  id: string
+  level: number
+  text: string
+}
+
+function headingText(tokens: Token[]): string {
+  return tokens
+    .map((token) => ('text' in token ? String(token.text) : token.raw ?? ''))
+    .join('')
+    .trim()
+}
+
 const markdownRenderer = new Renderer()
 const renderDefaultCode = markdownRenderer.code.bind(markdownRenderer)
 
@@ -621,6 +656,14 @@ markdownRenderer.code = (token: Tokens.Code): string => {
   }
 
   return renderDefaultCode(token)
+}
+
+markdownRenderer.heading = function (token: Tokens.Heading): string {
+  const text = headingText(token.tokens)
+  const id = nextHeadingId(slugifyHeading(text))
+  const innerHtml = this.parser.parseInline(token.tokens)
+
+  return `<h${token.depth} id="${id}">${innerHtml}</h${token.depth}>`
 }
 
 const markdownExtensions: MarkedExtension[] = [
@@ -735,6 +778,7 @@ function addExternalLinkAttributes(html: string): string {
 }
 
 function renderMarkdown(markdown: string, breaks = false): string {
+  headingIdCounts.clear()
   const parsedHtml = markdownParser.parse(markdown, {
     ...markdownOptions,
     breaks,
@@ -754,9 +798,9 @@ export function Markdown(props: MarkdownProps) {
     <div
       className={cn(
         'prose prose-sm dark:prose-invert max-w-none',
-        '[&_h1]:mt-6 [&_h1]:mb-3 [&_h1]:text-2xl [&_h1]:font-semibold',
-        '[&_h2]:mt-5 [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-semibold',
-        '[&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-lg [&_h3]:font-semibold',
+        '[&_h1]:mt-6 [&_h1]:mb-3 [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:scroll-mt-24',
+        '[&_h2]:mt-5 [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:scroll-mt-24',
+        '[&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:scroll-mt-24',
         '[&_h4]:mt-4 [&_h4]:mb-2 [&_h4]:font-semibold',
         '[&_p]:my-2 [&_p]:leading-relaxed [&_strong]:font-semibold [&_em]:italic',
         '[&_a]:text-primary [&_a]:underline hover:[&_a]:text-primary/80',

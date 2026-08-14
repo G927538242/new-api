@@ -1,0 +1,48 @@
+# ============================================================
+# new-api systemd 服务文件（前后端分离部署 - 后端 API 服务）
+# 安装方式：
+#   sudo cp new-api.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now new-api
+# ============================================================
+
+[Unit]
+Description=New API - AI Aggregation Platform (Backend API)
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# 服务运行用户（建议使用专用用户，避免 root 运行）
+User=root
+Group=root
+
+# 工作目录：后端二进制所在目录
+WorkingDirectory=/opt/new-api
+
+# 启动命令：二进制路径 + 参数
+ExecStart=/opt/new-api/new-api --log-dir /opt/new-api/logs
+ExecReload=/bin/kill -s HUP $MAINPID
+
+# 守护进程配置
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=0
+
+# 环境变量（优先使用 EnvironmentFile，避免硬编码敏感信息）
+EnvironmentFile=-/opt/new-api/.env
+# 基础环境变量兜底
+Environment=PORT=4340
+Environment=GIN_MODE=release
+Environment=TZ=Asia/Shanghai
+
+# 资源限制
+LimitNOFILE=65535
+NoNewPrivileges=false
+
+# 日志输出到 journald，可通过 journalctl 查看
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

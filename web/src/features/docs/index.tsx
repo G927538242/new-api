@@ -17,12 +17,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { ChevronLeft, ChevronRight, Menu, X } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { PublicLayout } from '@/components/layout'
 import { Button } from '@/components/ui/button'
-import { Markdown } from '@/components/ui/markdown'
+import { Markdown, slugifyHeading, type HeadingAnchor } from '@/components/ui/markdown'
 import { cn } from '@/lib/utils'
 
 import { docCategories, docPages } from './content'
@@ -33,6 +33,46 @@ function useBaseUrl(): string {
 
 function processContent(content: string, baseUrl: string): string {
   return content.replace(/\{\{BASE_URL\}\}/g, baseUrl)
+}
+
+/**
+ * 从 Markdown 源文本提取标题目录（跳过代码块），
+ * 生成的 id 与 Markdown 组件渲染出的锚点 id 保持一致。
+ */
+function extractToc(markdown: string): HeadingAnchor[] {
+  const anchors: HeadingAnchor[] = []
+  const counts = new Map<string, number>()
+  let inCode = false
+
+  for (const line of markdown.split('\n')) {
+    const trimmed = line.trim()
+
+    if (trimmed.startsWith('```')) {
+      inCode = !inCode
+      continue
+    }
+
+    if (inCode) {
+      continue
+    }
+
+    const match = /^(#{2,3})\s+(.+)$/.exec(trimmed)
+
+    if (!match) {
+      continue
+    }
+
+    const level = match[1].length
+    const text = match[2].trim()
+    const slug = slugifyHeading(text)
+    const count = counts.get(slug) ?? 0
+    counts.set(slug, count + 1)
+    const id = count === 0 ? slug : `${slug}-${count}`
+
+    anchors.push({ id, level, text })
+  }
+
+  return anchors
 }
 
 function DocsSidebar(props: {
@@ -72,11 +112,51 @@ function DocsSidebar(props: {
   )
 }
 
+function DocsToc(props: {
+  anchors: HeadingAnchor[]
+  activeId: string
+  onSelect: (id: string) => void
+}) {
+  const { anchors, activeId, onSelect } = props
+
+  if (anchors.length === 0) {
+    return null
+  }
+
+  return (
+    <nav className='space-y-4'>
+      <div className='text-muted-foreground/60 text-xs font-semibold tracking-wider uppercase'>
+        本篇目录
+      </div>
+      <ul className='space-y-0.5 border-l'>
+        {anchors.map((anchor) => (
+          <li key={anchor.id}>
+            <button
+              onClick={() => onSelect(anchor.id)}
+              className={cn(
+                '-ml-px block w-full border-l py-1 text-left text-[13px] leading-snug transition-colors',
+                anchor.level === 3 ? 'pl-6' : 'pl-4',
+                activeId === anchor.id
+                  ? 'border-primary text-primary font-medium'
+                  : 'border-transparent text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground'
+              )}
+            >
+              {anchor.text}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+
 export function Docs() {
   const { t } = useTranslation()
   const baseUrl = useBaseUrl()
   const [currentPageId, setCurrentPageId] = useState(docPages[0]?.id ?? '')
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [activeHeadingId, setActiveHeadingId] = useState('')
+  const articleRef = useRef<HTMLElement>(null)
 
   const currentPageIndex = useMemo(
     () => docPages.findIndex((p) => p.id === currentPageId),
@@ -94,10 +174,18 @@ export function Docs() {
     [currentPage, baseUrl]
   )
 
+  const toc = useMemo(() => extractToc(processedContent), [processedContent])
+
   const selectPage = useCallback((id: string) => {
     setCurrentPageId(id)
     setMobileSidebarOpen(false)
+    setActiveHeadingId('')
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [])
+
+  const selectHeading = useCallback((id: string) => {
+    setActiveHeadingId(id)
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
   // Sync with URL hash for deep linking
@@ -114,9 +202,41 @@ export function Docs() {
     }
   }, [currentPageId])
 
+  // Track the heading currently in view for the TOC highlight
+  useEffect(() => {
+    const article = articleRef.current
+
+    if (!article) {
+      return
+    }
+
+    const headings = Array.from(
+      article.querySelectorAll<HTMLElement>('h2[id], h3[id]')
+    )
+
+    if (headings.length === 0) {
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActiveHeadingId(entry.target.id)
+          }
+        }
+      },
+      { rootMargin: '-88px 0px -70% 0px' }
+    )
+
+    headings.forEach((heading) => observer.observe(heading))
+
+    return () => observer.disconnect()
+  }, [currentPageId, processedContent])
+
   return (
     <PublicLayout showMainContainer={false}>
-      <div className='mx-auto flex max-w-7xl gap-0 px-0 pt-16 md:pt-20'>
+      <div className='mx-auto flex max-w-[1400px] gap-0 px-0 pt-16 md:pt-20'>
         {/* Desktop sidebar */}
         <aside className='sticky top-20 hidden h-[calc(100vh-5rem)] w-64 shrink-0 overflow-y-auto border-r px-4 py-8 md:block'>
           <DocsSidebar
@@ -164,17 +284,17 @@ export function Docs() {
         )}
 
         {/* Main content */}
-        <main className='min-w-0 flex-1 px-4 py-8 md:px-8 md:py-8'>
+        <main className='min-w-0 flex-1 px-4 py-8 md:px-10 md:py-8'>
           <div className='mx-auto max-w-3xl'>
             {/* Breadcrumb */}
-            <div className='text-muted-foreground/60 mb-6 flex items-center gap-2 text-xs md:hidden'>
+            <nav className='text-muted-foreground/60 mb-8 flex items-center gap-2 text-xs'>
               <span>{currentPage?.category}</span>
               <ChevronRight className='size-3' />
               <span className='text-foreground/80'>{currentPage?.title}</span>
-            </div>
+            </nav>
 
             {/* Content */}
-            <article className='prose prose-neutral dark:prose-invert max-w-none'>
+            <article ref={articleRef} className='prose prose-neutral dark:prose-invert max-w-none'>
               <Markdown>{processedContent}</Markdown>
             </article>
 
@@ -219,6 +339,15 @@ export function Docs() {
             </div>
           </div>
         </main>
+
+        {/* Right TOC (on-page directory) */}
+        <aside className='sticky top-20 hidden h-[calc(100vh-5rem)] w-60 shrink-0 overflow-y-auto px-6 py-8 lg:block'>
+          <DocsToc
+            anchors={toc}
+            activeId={activeHeadingId}
+            onSelect={selectHeading}
+          />
+        </aside>
       </div>
     </PublicLayout>
   )
