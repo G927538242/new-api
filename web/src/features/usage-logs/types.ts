@@ -292,13 +292,19 @@ export interface TaskLog {
   task_id: string
   action: string // MUSIC, LYRICS, GENERATE, TEXT_GENERATE, etc.
   channel_id: number
+  channel_name?: string
+  group?: string
+  quota?: number
   submit_time: number // seconds
+  start_time?: number // seconds
   finish_time?: number // seconds
   progress?: string
   progress_message_en?: string
-  data?: string // JSON string
+  data?: string // JSON string (task result data from upstream, e.g. video/image urls)
   fail_reason?: string
   status: string // NOT_START, SUBMITTED, IN_PROGRESS, SUCCESS, FAILURE, QUEUED, UNKNOWN
+  result_url?: string // upstream result url (video / image / audio)
+  properties?: unknown
   other?: string
   created_at?: number
   updated_at?: number

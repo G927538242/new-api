@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next'
 
 import { StatusBadge } from '@/components/status-badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import { getUserAvatarFallback, getUserAvatarStyle } from '@/lib/avatar'
 import { formatTimestampToDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -37,6 +38,7 @@ import {
 } from '../dialogs/audio-preview-dialog'
 import { FailReasonDialog } from '../dialogs/fail-reason-dialog'
 import { ImageDialog } from '../dialogs/image-dialog'
+import { TaskDetailsDialog } from '../dialogs/task-details-dialog'
 import { VideoPreviewDialog } from '../dialogs/video-preview-dialog'
 import { useUsageLogsContext } from '../usage-logs-provider'
 import {
@@ -382,6 +384,7 @@ export function useTaskLogsColumns(isAdmin: boolean): ColumnDef<TaskLog>[] {
         const failReason = row.getValue('fail_reason') as string
         const status = log.status
         const [dialogOpen, setDialogOpen] = useState(false)
+        const [taskDetailsOpen, setTaskDetailsOpen] = useState(false)
 
         const isSunoSuccess =
           log.platform === 'suno' && status === TASK_STATUS.SUCCESS
@@ -395,7 +398,25 @@ export function useTaskLogsColumns(isAdmin: boolean): ColumnDef<TaskLog>[] {
                 (c as Record<string, unknown>).audio_url
             )
           ) {
-            return <AudioPreviewCell log={log} />
+            return (
+              <div className='flex items-center gap-2'>
+                <AudioPreviewCell log={log} />
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  className='h-6 px-2 text-xs text-muted-foreground hover:text-foreground'
+                  onClick={() => setTaskDetailsOpen(true)}
+                >
+                  {t('Details')}
+                </Button>
+                <TaskDetailsDialog
+                  log={log}
+                  isAdmin={isAdmin}
+                  open={taskDetailsOpen}
+                  onOpenChange={setTaskDetailsOpen}
+                />
+              </div>
+            )
           }
         }
 
@@ -407,53 +428,75 @@ export function useTaskLogsColumns(isAdmin: boolean): ColumnDef<TaskLog>[] {
           log.action === TASK_ACTIONS.REMIX_GENERATE
         const isSuccess = status === TASK_STATUS.SUCCESS
 
-        if (isSuccess) {
-          // 成功任务按实际媒体类型展示预览：视频 > 图片。
-          // 视频任务 data 解析不到 URL 时（如豆包，URL 存于私有数据），
-          // 由 isVideoTask 兜底走代理播放。
-          const media = extractTaskMedia(log.data)
-          if (media.videos.length > 0) {
-            return <VideoPreviewCell log={log} />
+        const previewCell = (() => {
+          if (isSuccess) {
+            const media = extractTaskMedia(log.data)
+            if (media.videos.length > 0) {
+              return <VideoPreviewCell log={log} />
+            }
+            if (media.images.length > 0) {
+              return (
+                <TaskImagePreviewCell
+                  images={media.images}
+                  taskId={log.task_id}
+                />
+              )
+            }
+            if (isVideoTask) {
+              return <VideoPreviewCell log={log} />
+            }
           }
-          if (media.images.length > 0) {
-            return (
-              <TaskImagePreviewCell
-                images={media.images}
-                taskId={log.task_id}
-              />
-            )
-          }
-          if (isVideoTask) {
-            return <VideoPreviewCell log={log} />
-          }
-        }
+          return null
+        })()
 
-        if (!failReason) {
-          return <span className='text-muted-foreground/60 text-xs'>-</span>
-        }
+        const hasFailReason = !!failReason
 
         return (
-          <>
-            <button
-              type='button'
-              className='group flex max-w-[200px] items-center gap-1 text-left text-xs'
-              onClick={() => setDialogOpen(true)}
-              title={t('Click to view full error message')}
+          <div className='flex max-w-[260px] flex-wrap items-center gap-1'>
+            {previewCell}
+            {previewCell && (
+              <span className='text-muted-foreground/30 text-[10px]'>·</span>
+            )}
+            <Button
+              variant='ghost'
+              size='sm'
+              className='h-6 px-2 text-xs text-muted-foreground hover:text-foreground'
+              onClick={() => setTaskDetailsOpen(true)}
+              title={t('Click to view task details')}
             >
-              <span className='truncate leading-snug text-red-600 group-hover:underline dark:text-red-400'>
-                {failReason}
-              </span>
-            </button>
-            <FailReasonDialog
-              failReason={failReason}
-              open={dialogOpen}
-              onOpenChange={setDialogOpen}
+              {t('Details')}
+            </Button>
+            {hasFailReason && (
+              <>
+                <span className='text-muted-foreground/30 text-[10px]'>·</span>
+                <button
+                  type='button'
+                  className='group flex max-w-[140px] items-center gap-1 text-left text-xs'
+                  onClick={() => setDialogOpen(true)}
+                  title={t('Click to view full error message')}
+                >
+                  <span className='truncate leading-snug text-red-600 group-hover:underline dark:text-red-400'>
+                    {failReason}
+                  </span>
+                </button>
+                <FailReasonDialog
+                  failReason={failReason}
+                  open={dialogOpen}
+                  onOpenChange={setDialogOpen}
+                />
+              </>
+            )}
+            <TaskDetailsDialog
+              log={log}
+              isAdmin={isAdmin}
+              open={taskDetailsOpen}
+              onOpenChange={setTaskDetailsOpen}
             />
-          </>
+          </div>
         )
       },
-      size: 200,
-      maxSize: 220,
+      size: 220,
+      maxSize: 260,
     }
   )
 
