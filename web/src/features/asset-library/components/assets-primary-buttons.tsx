@@ -99,17 +99,17 @@ export function AssetsPrimaryButtons() {
     if (!files || files.length === 0) return
 
     if (!currentChannel) {
-      toast.error(t('请先配置素材上游渠道'))
+      toast.error(t('Please configure asset channel first'))
       return
     }
 
     if (!currentModel) {
-      toast.error(t('请先选择模型素材库'))
+      toast.error(t('Please select a model library first'))
       return
     }
 
     if (!currentGroupId) {
-      toast.error(t('请先选择素材分组，素材必须放入素材分组'))
+      toast.error(t('Please select an asset group first'))
       return
     }
 
@@ -169,7 +169,7 @@ export function AssetsPrimaryButtons() {
         onClick={() => setOpen('create-group')}
       >
         <FolderPlus className='h-4 w-4' />
-        {t('新建分组')}
+        {t('New Group')}
       </Button>
 
       {/* 分组选择下拉（上传时选择目标分组 + 筛选） */}
@@ -178,11 +178,11 @@ export function AssetsPrimaryButtons() {
         onValueChange={handleGroupChange}
       >
         <SelectTrigger size='sm' className='w-[160px]'>
-          <SelectValue placeholder={t('选择分组')} />
+          <SelectValue placeholder={t('Select group')} />
         </SelectTrigger>
         <SelectContent alignItemWithTrigger={false}>
           <SelectGroup>
-            <SelectItem value='all'>{t('全部分组')}</SelectItem>
+            <SelectItem value='all'>{t('All groups')}</SelectItem>
             {groups.map((group) => (
               <SelectItem key={group.id} value={String(group.id)}>
                 {group.name}
@@ -202,13 +202,13 @@ export function AssetsPrimaryButtons() {
                   variant='ghost'
                   size='icon-sm'
                   onClick={handleEditGroup}
-                  aria-label={t('编辑分组')}
+                  aria-label={t('Edit Group')}
                 />
               }
             >
               <Pencil className='h-4 w-4' />
             </TooltipTrigger>
-            <TooltipContent>{t('编辑分组')}</TooltipContent>
+            <TooltipContent>{t('Edit Group')}</TooltipContent>
           </Tooltip>
 
           <Tooltip>
@@ -218,13 +218,13 @@ export function AssetsPrimaryButtons() {
                   variant='ghost'
                   size='icon-sm'
                   onClick={handleDeleteGroup}
-                  aria-label={t('删除分组')}
+                  aria-label={t('Delete Group')}
                 />
               }
             >
               <Trash2 className='text-destructive h-4 w-4' />
             </TooltipTrigger>
-            <TooltipContent>{t('删除分组')}</TooltipContent>
+            <TooltipContent>{t('Delete Group')}</TooltipContent>
           </Tooltip>
         </>
       )}

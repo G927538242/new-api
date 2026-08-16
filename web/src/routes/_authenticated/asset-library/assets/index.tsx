@@ -87,7 +87,7 @@ function AssetModelTabs() {
     queryFn: async () => {
       const result = await getAssetChannels()
       if (!result.success) {
-        toast.error(t('加载素材渠道失败'))
+        toast.error(t('Failed to load asset channels'))
         return []
       }
       return result.data ?? []
@@ -124,12 +124,14 @@ function AssetModelTabs() {
     return (
       <div className='rounded-lg border border-dashed bg-muted/30 px-4 py-6 text-center'>
         <p className='text-sm font-medium'>
-          {isAdmin ? '尚未配置素材上游渠道' : '暂无可用的素材模型'}
+          {isAdmin
+            ? t('No asset channels configured')
+            : t('No asset models available')}
         </p>
         <p className='mt-1 text-xs text-muted-foreground'>
           {isAdmin
-            ? '请先前往「素材渠道」管理页配置渠道（如字节官方、移动MOMA平台）及其支持的模型。'
-            : '请联系管理员配置素材渠道与模型。'}
+            ? t('asset channels empty hint')
+            : t('Please contact admin to configure asset channels and models')}
         </p>
       </div>
     )
@@ -151,7 +153,9 @@ function AssetModelTabs() {
       </Tabs>
       {isAdmin && currentChannel && (
         <div className='flex items-center gap-1.5'>
-          <span className='text-xs text-muted-foreground'>上游渠道：</span>
+          <span className='text-xs text-muted-foreground'>
+            {t('Upstream channel:')}
+          </span>
           <StatusBadge
             label={currentChannel.name}
             variant={getAssetChannelTypeConfig(currentChannel.type)?.variant}
@@ -159,7 +163,7 @@ function AssetModelTabs() {
           />
           {!currentChannel.has_credentials && (
             <span className='text-xs text-warning'>
-              （未配置 AK/SK，素材仅本地保存）
+              {t('asset channel no credentials hint')}
             </span>
           )}
         </div>
@@ -175,7 +179,7 @@ function AssetsPage() {
       <SectionPageLayout fixedContent>
         <SectionPageLayout.Title>
           <div className='flex flex-col gap-2'>
-            <span>{t('我的素材')}</span>
+            <span>{t('My Assets')}</span>
             <AssetModelTabs />
           </div>
         </SectionPageLayout.Title>

@@ -16,7 +16,7 @@ export function Hero(props: HeroProps) {
 
   const primaryCta = props.isAuthenticated ? (
     <Button
-      className='h-12 rounded-lg border-0 bg-foreground px-7 text-[14px] font-semibold text-background shadow-lg shadow-foreground/10 transition-all hover:scale-[1.02] hover:bg-foreground/90'
+      className='h-12 rounded-lg border-0 bg-gradient-to-r from-sky-500 to-blue-600 px-7 text-[14px] font-semibold text-white shadow-lg shadow-sky-500/25 transition-all hover:scale-[1.02] hover:from-sky-600 hover:to-blue-700'
       render={<Link to='/dashboard' />}
     >
       {t('Go to Dashboard')}
@@ -24,7 +24,7 @@ export function Hero(props: HeroProps) {
     </Button>
   ) : (
     <Button
-      className='h-12 rounded-lg border-0 bg-foreground px-7 text-[14px] font-semibold text-background shadow-lg shadow-foreground/10 transition-all hover:scale-[1.02] hover:bg-foreground/90'
+      className='h-12 rounded-lg border-0 bg-gradient-to-r from-sky-500 to-blue-600 px-7 text-[14px] font-semibold text-white shadow-lg shadow-sky-500/25 transition-all hover:scale-[1.02] hover:from-sky-600 hover:to-blue-700'
       render={<Link to='/sign-up' />}
     >
       {t('Get Started')}
@@ -33,11 +33,12 @@ export function Hero(props: HeroProps) {
   )
 
   return (
-    <section className='relative overflow-hidden px-6 pt-32 pb-24 md:pt-40 md:pb-32 lg:pt-48 lg:pb-40'>
+    <section className='relative overflow-hidden bg-gradient-to-b from-sky-100/90 via-white/40 to-transparent px-6 pt-32 pb-24 dark:from-sky-950/40 dark:via-slate-950/20 dark:to-transparent md:pt-40 md:pb-32 lg:pt-48 lg:pb-40'>
       {/* Decorative elements */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute top-0 left-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/[0.03] blur-3xl dark:bg-foreground/[0.04]" />
-        <div className="absolute top-40 right-0 h-[300px] w-[300px] translate-x-1/4 rounded-full bg-foreground/[0.02] blur-3xl dark:bg-foreground/[0.03]" />
+        <div className="absolute -top-32 left-1/2 h-[640px] w-[640px] -translate-x-1/2 rounded-full bg-sky-400/15 blur-3xl dark:bg-sky-500/15" />
+        <div className="absolute top-24 right-[-10%] h-[360px] w-[360px] rounded-full bg-sky-300/15 blur-3xl dark:bg-sky-600/10" />
+        <div className="absolute top-40 left-0 h-[300px] w-[300px] -translate-x-1/4 rounded-full bg-foreground/[0.02] blur-3xl dark:bg-foreground/[0.03]" />
       </div>
 
       <div className='relative mx-auto max-w-[1200px] px-6'>
@@ -45,9 +46,9 @@ export function Hero(props: HeroProps) {
         <div className='home-reveal-up mb-12 flex justify-center' style={{ animationDelay: '0ms' }}>
           <Link
             to={props.isAuthenticated ? '/playground' : '/sign-in'}
-            className='group inline-flex items-center gap-2 rounded-full border border-border bg-background/50 px-4 py-1.5 text-[12px] font-medium text-muted-foreground backdrop-blur-sm transition-all hover:border-foreground/30 hover:bg-background hover:text-foreground'
+            className='group inline-flex items-center gap-2 rounded-full border border-sky-200/70 bg-white/60 px-4 py-1.5 text-[12px] font-medium text-muted-foreground backdrop-blur-sm transition-all hover:border-sky-400/60 hover:bg-white hover:text-foreground dark:border-slate-700 dark:bg-slate-900/60'
           >
-            <Sparkles className="size-3.5 text-foreground/60 transition-transform group-hover:scale-110" />
+            <Sparkles className="size-3.5 text-sky-500 transition-transform group-hover:scale-110" />
             <span>API 在线体验 · 支持 50+ 主流模型</span>
             <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
           </Link>

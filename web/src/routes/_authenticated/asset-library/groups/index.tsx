@@ -65,9 +65,12 @@ import {
   deleteAssetGroup,
   getAssetChannels,
   getAssetGroups,
+  updateAssetGroup,
 } from '../../../../features/asset-library/api'
 import {
   ASSET_MODEL_CONFIG,
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES,
 } from '../../../../features/asset-library/constants'
 import { useAssets } from '../../../../features/asset-library/components/assets-provider'
 import type { AssetChannel, AssetGroup } from '../../../../features/asset-library/types'
@@ -121,7 +124,7 @@ function GroupsPage() {
     queryFn: async () => {
       const result = await getAssetChannels()
       if (!result.success) {
-        toast.error(t('加载素材渠道失败'))
+        toast.error(t('Failed to load asset channels'))
         return []
       }
       return result.data ?? []
@@ -172,44 +175,61 @@ function GroupsPage() {
 
   const handleSubmit = async () => {
     if (!formName.trim()) {
-      toast.error('分组名称不能为空')
+      toast.error(t('Group name is required'))
       return
     }
     if (!formModel) {
-      toast.error('请选择模型')
-      return
-    }
-
-    const channel = findChannelForModel(effectiveChannels, formModel)
-    if (!channel) {
-      toast.error('当前模型没有可用的渠道配置')
+      toast.error(t('Please select a model'))
       return
     }
 
     setIsSaving(true)
     try {
       if (editingGroup) {
-        toast.info('编辑分组功能开发中')
-      } else {
-        const result = await createAssetGroup(
-          {
-            name: formName.trim(),
-            description: formDescription.trim(),
-          },
-          channel.id,
-          formModel
-        )
+        // 编辑仅更新名称与描述，分组绑定的渠道 + 模型不可变更
+        const result = await updateAssetGroup(editingGroup.id, {
+          name: formName.trim(),
+          description: formDescription.trim(),
+        })
         if (result.success) {
-          toast.success('分组创建成功')
+          toast.success(t(SUCCESS_MESSAGES.GROUP_UPDATED))
           queryClient.invalidateQueries({ queryKey: ['asset-groups'] })
           setCreateDialogOpen(false)
           resetForm()
         } else {
-          toast.error(result.message || '分组创建失败')
+          toast.error(result.message || t(ERROR_MESSAGES.UPDATE_GROUP_FAILED))
         }
+        return
+      }
+
+      const channel = findChannelForModel(effectiveChannels, formModel)
+      if (!channel) {
+        toast.error(t('No available channel for this model'))
+        return
+      }
+
+      const result = await createAssetGroup(
+        {
+          name: formName.trim(),
+          description: formDescription.trim(),
+        },
+        channel.id,
+        formModel
+      )
+      if (result.success) {
+        toast.success(t(SUCCESS_MESSAGES.GROUP_CREATED))
+        queryClient.invalidateQueries({ queryKey: ['asset-groups'] })
+        setCreateDialogOpen(false)
+        resetForm()
+      } else {
+        toast.error(result.message || t(ERROR_MESSAGES.CREATE_GROUP_FAILED))
       }
     } catch {
-      toast.error('分组创建失败')
+      toast.error(
+        editingGroup
+          ? t(ERROR_MESSAGES.UPDATE_GROUP_FAILED)
+          : t(ERROR_MESSAGES.CREATE_GROUP_FAILED)
+      )
     } finally {
       setIsSaving(false)
     }
@@ -221,14 +241,14 @@ function GroupsPage() {
     try {
       const result = await deleteAssetGroup(deletingGroup.id)
       if (result.success) {
-        toast.success('分组删除成功')
+        toast.success(t(SUCCESS_MESSAGES.GROUP_DELETED))
         queryClient.invalidateQueries({ queryKey: ['asset-groups'] })
         setDeletingGroup(null)
       } else {
-        toast.error(result.message || '分组删除失败')
+        toast.error(result.message || t(ERROR_MESSAGES.DELETE_GROUP_FAILED))
       }
     } catch {
-      toast.error('分组删除失败')
+      toast.error(t(ERROR_MESSAGES.DELETE_GROUP_FAILED))
     } finally {
       setIsDeleting(false)
     }
@@ -241,9 +261,9 @@ function GroupsPage() {
       <SectionPageLayout fixedContent>
         <SectionPageLayout.Title>
           <div className='flex flex-col gap-1'>
-            <span>{t('我的素材组')}</span>
+            <span>{t('My Asset Groups')}</span>
             <p className='text-muted-foreground text-sm'>
-              管理素材分组，按渠道和模型隔离
+              {t('Manage asset groups, isolated by channel and model')}
             </p>
           </div>
         </SectionPageLayout.Title>
@@ -253,19 +273,23 @@ function GroupsPage() {
             onClick={openCreate}
             disabled={!hasModels}
             title={
-              !hasModels ? '暂无可用模型，请先配置素材渠道' : ''
+              !hasModels
+                ? t('No models available, please configure asset channels first')
+                : ''
             }
           >
             <Plus className='h-4 w-4' />
-            新建分组
+            {t('New Group')}
           </Button>
         </SectionPageLayout.Actions>
         <SectionPageLayout.Content>
           {!hasModels ? (
             <div className='rounded-lg border border-dashed bg-muted/30 px-4 py-8 text-center'>
-              <p className='text-sm font-medium'>暂无可用的素材模型</p>
+              <p className='text-sm font-medium'>
+                {t('No asset models available')}
+              </p>
               <p className='mt-1 text-xs text-muted-foreground'>
-                请联系管理员配置素材渠道和模型
+                {t('Please contact admin to configure asset channels and models')}
               </p>
             </div>
           ) : (
@@ -273,10 +297,10 @@ function GroupsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>ID</TableHead>
-                  <TableHead>分组名称</TableHead>
-                  <TableHead>模型</TableHead>
-                  <TableHead>描述</TableHead>
-                  <TableHead className='text-right'>操作</TableHead>
+                  <TableHead>{t('Group Name')}</TableHead>
+                  <TableHead>{t('Model')}</TableHead>
+                  <TableHead>{t('Description')}</TableHead>
+                  <TableHead className='text-right'>{t('Actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -286,7 +310,7 @@ function GroupsPage() {
                       colSpan={5}
                       className='text-muted-foreground h-24 text-center'
                     >
-                      加载中...
+                      {t('Loading...')}
                     </TableCell>
                   </TableRow>
                 ) : groups.length === 0 ? (
@@ -295,7 +319,7 @@ function GroupsPage() {
                       colSpan={5}
                       className='text-muted-foreground h-24 text-center'
                     >
-                      暂无分组，点击右上角新建分组
+                      {t('No groups yet. Click "New Group" to create one.')}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -318,7 +342,7 @@ function GroupsPage() {
                           <div className='flex flex-col gap-1'>
                             {modelConfig ? (
                               <StatusBadge
-                                label={modelConfig.labelKey}
+                                label={t(modelConfig.labelKey)}
                                 variant={modelConfig.variant}
                                 copyable={false}
                               />
@@ -343,7 +367,7 @@ function GroupsPage() {
                               variant='ghost'
                               size='icon-sm'
                               onClick={() => openEdit(group)}
-                              aria-label='编辑分组'
+                              aria-label={t('Edit Group')}
                             >
                               <Pencil className='h-4 w-4' />
                             </Button>
@@ -351,7 +375,7 @@ function GroupsPage() {
                               variant='ghost'
                               size='icon-sm'
                               onClick={() => setDeletingGroup(group)}
-                              aria-label='删除分组'
+                              aria-label={t('Delete Group')}
                             >
                               <Trash2 className='text-destructive h-4 w-4' />
                             </Button>
@@ -379,13 +403,13 @@ function GroupsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingGroup ? '编辑分组' : '新建分组'}
+              {editingGroup ? t('Edit Group') : t('New Group')}
             </DialogTitle>
           </DialogHeader>
           <div className='space-y-4 py-2'>
-            {editingGroup && editingGroup.channel_id && (
+            {editingGroup && (
               <div className='rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground'>
-                当前绑定渠道：
+                {t('Bound channel:')}{' '}
                 {effectiveChannels.find(
                   (ch) => ch.id === editingGroup.channel_id
                 )?.name ?? '-'}
@@ -394,30 +418,32 @@ function GroupsPage() {
               </div>
             )}
             <div className='space-y-2'>
-              <label className='text-sm font-medium'>分组名称 *</label>
+              <label className='text-sm font-medium'>
+                {t('Group Name')} *
+              </label>
               <Input
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                placeholder='输入分组名称'
+                placeholder={t('Enter group name')}
                 disabled={isSaving}
               />
             </div>
             <div className='space-y-2'>
-              <label className='text-sm font-medium'>模型 *</label>
+              <label className='text-sm font-medium'>{t('Model')} *</label>
               <Select
                 value={formModel}
                 onValueChange={(value) => setFormModel(value ?? '')}
                 disabled={isSaving || !!editingGroup}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="选择模型" />
+                  <SelectValue placeholder={t('Select model')} />
                 </SelectTrigger>
                 <SelectContent>
                   {modelOptions.map((model) => {
                     const config = ASSET_MODEL_CONFIG[model]
                     return (
                       <SelectItem key={model} value={model}>
-                        {config ? config.labelKey : model}
+                        {config ? t(config.labelKey) : model}
                       </SelectItem>
                     )
                   })}
@@ -425,18 +451,20 @@ function GroupsPage() {
               </Select>
               {formModel && (
                 <p className='text-muted-foreground text-xs'>
-                  绑定渠道：
+                  {t('Bound channel:')}{' '}
                   {findChannelForModel(effectiveChannels, formModel)?.name ??
                     '-'}
                 </p>
               )}
             </div>
             <div className='space-y-2'>
-              <label className='text-sm font-medium'>描述</label>
+              <label className='text-sm font-medium'>
+                {t('Description')}
+              </label>
               <Input
                 value={formDescription}
                 onChange={(e) => setFormDescription(e.target.value)}
-                placeholder='分组描述（可选）'
+                placeholder={t('Description (optional)')}
                 disabled={isSaving}
               />
             </div>
@@ -450,10 +478,14 @@ function GroupsPage() {
               }}
               disabled={isSaving}
             >
-              取消
+              {t('Cancel')}
             </Button>
             <Button onClick={handleSubmit} disabled={isSaving}>
-              {isSaving ? '保存中...' : editingGroup ? '更新' : '创建'}
+              {isSaving
+                ? t('Saving...')
+                : editingGroup
+                  ? t('Update')
+                  : t('Create')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -465,19 +497,23 @@ function GroupsPage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>确定删除？</AlertDialogTitle>
+            <AlertDialogTitle>{t('Are you sure?')}</AlertDialogTitle>
             <AlertDialogDescription>
-              将删除分组「{deletingGroup?.name}」，该操作不可撤销。
+              {t('This will permanently delete group')}{' '}
+              <span className='font-semibold'>{deletingGroup?.name}</span>
+              {t('. This action cannot be undone.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>取消</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>
+              {t('Cancel')}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}
               variant='destructive'
             >
-              {isDeleting ? '删除中...' : '删除'}
+              {isDeleting ? t('Deleting...') : t('Delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -154,14 +154,27 @@ function ChannelFormDialog({
         ? await updateAssetChannel(channel!.id, values)
         : await createAssetChannel(values)
       if (result.success) {
-        toast.success(isEdit ? '渠道更新成功' : '渠道创建成功')
+        toast.success(
+          isEdit
+            ? t('Asset channel updated successfully')
+            : t('Asset channel created successfully')
+        )
         queryClient.invalidateQueries({ queryKey: ['asset-channels'] })
         onOpenChange(false)
       } else {
-        toast.error(result.message || (isEdit ? '渠道更新失败' : '渠道创建失败'))
+        toast.error(
+          result.message ||
+            t(
+              isEdit
+                ? 'Failed to update asset channel'
+                : 'Failed to create asset channel'
+            )
+        )
       }
     } catch {
-      toast.error(isEdit ? '渠道更新失败' : '渠道创建失败')
+      toast.error(
+        t(isEdit ? 'Failed to update asset channel' : 'Failed to create asset channel')
+      )
     } finally {
       setIsSaving(false)
     }
@@ -172,7 +185,7 @@ function ChannelFormDialog({
       <DialogContent className='max-w-lg'>
         <DialogHeader>
           <DialogTitle>
-            {isEdit ? '编辑素材渠道' : '新建素材渠道'}
+            {isEdit ? t('Edit Asset Channel') : t('New Asset Channel')}
           </DialogTitle>
         </DialogHeader>
         <Form {...form}>
@@ -186,9 +199,12 @@ function ChannelFormDialog({
               name='name'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>渠道名称 *</FormLabel>
+                  <FormLabel>{t('Channel Name')} *</FormLabel>
                   <FormControl>
-                    <Input placeholder='如 字节官方、移动MOMA平台' {...field} />
+                    <Input
+                      placeholder={t('e.g. Volcengine Ark, MOMA Platform')}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -200,7 +216,7 @@ function ChannelFormDialog({
               name='type'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>渠道类型 *</FormLabel>
+                  <FormLabel>{t('Channel Type')} *</FormLabel>
                   <Select
                     value={field.value}
                     onValueChange={field.onChange}
@@ -214,14 +230,14 @@ function ChannelFormDialog({
                       <SelectGroup>
                         {getAssetChannelTypeOptions().map((option) => (
                           <SelectItem key={option.value} value={option.value}>
-                            {option.label}
+                            {t(option.label)}
                           </SelectItem>
                         ))}
                       </SelectGroup>
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    字节官方对应火山引擎方舟素材库（AK/SK 鉴权）；移动MOMA平台为预留渠道类型。
+                    {t('channel type description')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -233,15 +249,15 @@ function ChannelFormDialog({
               name='models'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>支持的模型</FormLabel>
+                  <FormLabel>{t('Supported Models')}</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder='如 sendance-2.0, sendance-2.5（逗号分隔）'
+                      placeholder={t('e.g. sendance-2.0, sendance-2.5 (comma separated)')}
                       {...field}
                     />
                   </FormControl>
                   <FormDescription>
-                    素材库页面将按这些模型展示切换页签，模型归属该渠道。
+                    {t('models description')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -258,7 +274,7 @@ function ChannelFormDialog({
                     <FormControl>
                       <Input
                         type='password'
-                        placeholder={channel ? '留空保持不变' : '输入 AK'}
+                        placeholder={channel ? t('Leave blank to keep unchanged') : t('Enter AK')}
                         autoComplete='new-password'
                         {...field}
                       />
@@ -276,7 +292,7 @@ function ChannelFormDialog({
                     <FormControl>
                       <Input
                         type='password'
-                        placeholder={channel ? '留空保持不变' : '输入 SK'}
+                        placeholder={channel ? t('Leave blank to keep unchanged') : t('Enter SK')}
                         autoComplete='new-password'
                         {...field}
                       />
@@ -292,9 +308,9 @@ function ChannelFormDialog({
               name='description'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>说明</FormLabel>
+                  <FormLabel>{t('Description')}</FormLabel>
                   <FormControl>
-                    <Input placeholder='渠道用途说明（可选）' {...field} />
+                    <Input placeholder={t('Channel purpose (optional)')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -307,8 +323,8 @@ function ChannelFormDialog({
               render={({ field }) => (
                 <FormItem className='flex items-center justify-between rounded-lg border px-3 py-2'>
                   <div>
-                    <FormLabel>启用渠道</FormLabel>
-                    <FormDescription>停用后素材库不再展示该渠道及其模型。</FormDescription>
+                    <FormLabel>{t('Enable channel')}</FormLabel>
+                    <FormDescription>{t('disable channel hint')}</FormDescription>
                   </div>
                   <FormControl>
                     <Switch
@@ -355,7 +371,7 @@ export function AssetChannelsPage() {
     queryFn: async () => {
       const result = await getAssetChannels()
       if (!result.success) {
-        toast.error('加载素材渠道失败')
+        toast.error(t('Failed to load asset channels'))
         return []
       }
       return result.data ?? []
@@ -378,14 +394,14 @@ export function AssetChannelsPage() {
     try {
       const result = await deleteAssetChannel(deletingChannel.id)
       if (result.success) {
-        toast.success('渠道删除成功')
+        toast.success(t('Asset channel deleted successfully'))
         queryClient.invalidateQueries({ queryKey: ['asset-channels'] })
         setDeletingChannel(null)
       } else {
-        toast.error(result.message || '渠道删除失败')
+        toast.error(result.message || t('Failed to delete asset channel'))
       }
     } catch {
-      toast.error('渠道删除失败')
+      toast.error(t('Failed to delete asset channel'))
     } finally {
       setIsDeleting(false)
     }
@@ -396,17 +412,16 @@ export function AssetChannelsPage() {
       <SectionPageLayout fixedContent>
         <SectionPageLayout.Title>
           <div className='flex flex-col gap-1'>
-            <span>{t('素材渠道')}</span>
+            <span>{t('Asset Channels')}</span>
             <p className='text-muted-foreground text-sm'>
-              素材库按上游渠道隔离管理（如字节官方、移动MOMA平台）。每个渠道配置独立的
-              AK/SK 凭证与支持的模型，素材分组与素材均归属到「渠道 + 模型」下。
+              {t('channels page description')}
             </p>
           </div>
         </SectionPageLayout.Title>
         <SectionPageLayout.Actions>
           <Button size='sm' onClick={handleCreate}>
             <Plus className='h-4 w-4' />
-            新建渠道
+            {t('New Channel')}
           </Button>
         </SectionPageLayout.Actions>
         <SectionPageLayout.Content>
@@ -414,12 +429,12 @@ export function AssetChannelsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
-                <TableHead>渠道名称</TableHead>
-                <TableHead>类型</TableHead>
-                <TableHead>支持的模型</TableHead>
-                <TableHead>凭证</TableHead>
-                <TableHead>状态</TableHead>
-                <TableHead className='text-right'>操作</TableHead>
+                <TableHead>{t('Channel Name')}</TableHead>
+                <TableHead>{t('Channel Type')}</TableHead>
+                <TableHead>{t('Supported Models')}</TableHead>
+                <TableHead>{t('Credentials')}</TableHead>
+                <TableHead>{t('Status')}</TableHead>
+                <TableHead className='text-right'>{t('Actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -429,7 +444,7 @@ export function AssetChannelsPage() {
                     colSpan={7}
                     className='text-muted-foreground h-24 text-center'
                   >
-                    加载中...
+                    {t('Loading...')}
                   </TableCell>
                 </TableRow>
               ) : channels.length === 0 ? (
@@ -438,7 +453,7 @@ export function AssetChannelsPage() {
                     colSpan={7}
                     className='text-muted-foreground h-24 text-center'
                   >
-                    暂无素材渠道，请先新建渠道（如「字节官方」）。
+                    {t('No asset channels yet. Create one first.')}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -454,7 +469,9 @@ export function AssetChannelsPage() {
                       </TableCell>
                       <TableCell>
                         <StatusBadge
-                          label={typeConfig?.label ?? channel.type}
+                          label={
+                            typeConfig ? t(typeConfig.labelKey) : channel.type
+                          }
                           variant={typeConfig?.variant}
                           copyable={false}
                         />
@@ -465,13 +482,13 @@ export function AssetChannelsPage() {
                       <TableCell>
                         {channel.has_credentials ? (
                           <StatusBadge
-                            label='已配置'
+                            label={t('Configured')}
                             variant='success'
                             copyable={false}
                           />
                         ) : (
                           <StatusBadge
-                            label='未配置'
+                            label={t('Not configured')}
                             variant='warning'
                             copyable={false}
                           />
@@ -479,7 +496,7 @@ export function AssetChannelsPage() {
                       </TableCell>
                       <TableCell>
                         <StatusBadge
-                          label={channel.enabled ? '已启用' : '已停用'}
+                          label={channel.enabled ? t('Enabled') : t('Disabled')}
                           variant={channel.enabled ? 'success' : 'neutral'}
                           copyable={false}
                         />
@@ -490,7 +507,7 @@ export function AssetChannelsPage() {
                             variant='ghost'
                             size='icon-sm'
                             onClick={() => handleEdit(channel)}
-                            aria-label='编辑渠道'
+                            aria-label={t('Edit Channel')}
                           >
                             <Pencil className='h-4 w-4' />
                           </Button>
@@ -498,7 +515,7 @@ export function AssetChannelsPage() {
                             variant='ghost'
                             size='icon-sm'
                             onClick={() => setDeletingChannel(channel)}
-                            aria-label='删除渠道'
+                            aria-label={t('Delete Channel')}
                           >
                             <Trash2 className='text-destructive h-4 w-4' />
                           </Button>
@@ -527,7 +544,9 @@ export function AssetChannelsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t('Are you sure?')}</AlertDialogTitle>
             <AlertDialogDescription>
-              确定删除素材渠道「{deletingChannel?.name}」吗？删除后该渠道下的分组与素材将不再归属任何渠道。
+              {t('delete channel confirm', {
+                name: deletingChannel?.name,
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

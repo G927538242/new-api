@@ -19,8 +19,9 @@ import (
 
 // AssetStorage 素材存储抽象，支持本地磁盘与 S3 兼容对象存储。
 type AssetStorage interface {
-	// Upload 上传文件，返回可访问 URL。
-	Upload(ctx context.Context, reader io.Reader, key string, mimeType string) (string, error)
+	// Upload 上传文件，返回可访问 URL。size 为文件字节数（对象存储据此设置 Content-Length，
+	// 避免 aws-sdk-go-v2 使用阿里云 OSS 等不支持的 chunked 编码）。
+	Upload(ctx context.Context, reader io.Reader, size int64, key string, mimeType string) (string, error)
 	// Delete 删除文件。
 	Delete(ctx context.Context, key string) error
 	// Open 打开已存储的文件用于读取（供转存上游等场景使用）。
@@ -70,7 +71,7 @@ func newLocalStorage() *localStorage {
 	return &localStorage{dir: dir}
 }
 
-func (l *localStorage) Upload(ctx context.Context, reader io.Reader, key string, mimeType string) (string, error) {
+func (l *localStorage) Upload(ctx context.Context, reader io.Reader, size int64, key string, mimeType string) (string, error) {
 	safeKey := sanitizeKey(key)
 	fullPath := filepath.Join(l.dir, safeKey)
 	if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
@@ -140,6 +141,9 @@ func newS3Storage() (*s3Storage, error) {
 			o.BaseEndpoint = aws.String(s.Endpoint)
 		}
 		o.UsePathStyle = s.ForcePathStyle
+		// 禁用请求校验和（SDK 默认对 S3 PutObject 使用 aws-chunked + trailer 编码，
+		// 阿里云 OSS 等 S3 兼容服务不支持该编码，会返回 NotImplemented）
+		o.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
 	})
 	prefix := s.PathPrefix
 	if prefix != "" && !strings.HasSuffix(prefix, "/") {
@@ -154,17 +158,18 @@ func newS3Storage() (*s3Storage, error) {
 	}, nil
 }
 
-func (s *s3Storage) Upload(ctx context.Context, reader io.Reader, key string, mimeType string) (string, error) {
+func (s *s3Storage) Upload(ctx context.Context, reader io.Reader, size int64, key string, mimeType string) (string, error) {
 	objectKey := s.prefix + sanitizeKey(key)
 	contentType := mimeType
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
 	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:      aws.String(s.bucket),
-		Key:         aws.String(objectKey),
-		Body:        reader,
-		ContentType: aws.String(contentType),
+		Bucket:        aws.String(s.bucket),
+		Key:           aws.String(objectKey),
+		Body:          reader,
+		ContentType:   aws.String(contentType),
+		ContentLength: aws.Int64(size),
 	})
 	if err != nil {
 		return "", fmt.Errorf("s3 put object failed: %w", err)

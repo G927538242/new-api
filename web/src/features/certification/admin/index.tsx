@@ -538,8 +538,9 @@ export function CertificationAdminPage() {
   const [detailOpen, setDetailOpen] = React.useState(false)
   const [forceOpen, setForceOpen] = React.useState(false)
   const [forceTarget, setForceTarget] = React.useState<UnverifiedUser | null>(null)
-  // "全部"与"未认证用户"均为用户维度视图（全部可见未认证用户）
-  const isUserView = status === -1 || status === -2
+  // 认证记录视图（默认"全部"展示所有认证记录，含待审核记录可直接审核）；
+  // 仅"未认证用户"(-2) 为用户维度视图，用于强制认证
+  const isUserView = status === -2
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['admin-certifications', page, status, keyword],
@@ -737,9 +738,13 @@ export function CertificationAdminPage() {
                           {formatTime(item.created_at)}
                         </TableCell>
                         <TableCell className='text-right'>
-                          <Button variant='ghost' size='sm' onClick={() => openDetail(item)}>
+                          <Button
+                            variant={item.status === 0 ? 'outline' : 'ghost'}
+                            size='sm'
+                            onClick={() => openDetail(item)}
+                          >
                             <Eye className='size-4' />
-                            查看
+                            {item.status === 0 ? '审核' : '查看'}
                           </Button>
                         </TableCell>
                       </TableRow>

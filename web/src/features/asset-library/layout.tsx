@@ -66,7 +66,7 @@ function AssetLibraryContent() {
     queryFn: async () => {
       const result = await getAssetChannels()
       if (!result.success) {
-        toast.error(t('加载素材渠道失败'))
+        toast.error(t('Failed to load asset channels'))
         return []
       }
       return result.data ?? []

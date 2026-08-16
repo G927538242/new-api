@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -976,6 +977,26 @@ func checkUpdatePassword(originalPassword string, newPassword string, userId int
 	return
 }
 
+// deleteUserStoredFiles 删除用户的存储文件（OSS/本地磁盘），尽力而为，失败仅记录日志。
+func deleteUserStoredFiles(ctx context.Context, keys []string) {
+	if len(keys) == 0 {
+		return
+	}
+	storage, err := service.GetAssetStorage()
+	if err != nil {
+		common.SysError("get storage failed when deleting user files: " + err.Error())
+		return
+	}
+	for _, key := range keys {
+		if key == "" {
+			continue
+		}
+		if err := storage.Delete(ctx, key); err != nil {
+			common.SysError(fmt.Sprintf("failed to delete stored file %q: %v", key, err))
+		}
+	}
+}
+
 func DeleteUser(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -992,11 +1013,18 @@ func DeleteUser(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionHigherLevel)
 		return
 	}
+	// 删除前收集存储文件 key（数据库记录删除后无法再取到）
+	storedKeys, keyErr := model.CollectUserStoredKeys(id)
+	if keyErr != nil {
+		common.SysError(fmt.Sprintf("failed to collect stored keys for user %d: %v", id, keyErr))
+	}
 	err = model.HardDeleteUserById(id)
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
+	// 删除用户在对象存储/本地磁盘的文件（素材 + 认证证件图片）
+	deleteUserStoredFiles(c.Request.Context(), storedKeys)
 	recordManageAuditFor(c, originUser.Id, "user.delete", map[string]interface{}{
 		"username": originUser.Username,
 		"id":       originUser.Id,
@@ -1031,11 +1059,24 @@ func DeleteSelf(c *gin.Context) {
 
 // CleanupDeletedUsers 物理删除所有已注销（软删除）用户及其全部关联数据（管理员操作）
 func CleanupDeletedUsers(c *gin.Context) {
+	// 删除前收集所有待清理用户的存储文件 key
+	ids, _ := model.ListUsersToCleanup()
+	var storedKeys []string
+	for _, id := range ids {
+		keys, err := model.CollectUserStoredKeys(id)
+		if err != nil {
+			common.SysError(fmt.Sprintf("failed to collect stored keys for user %d: %v", id, err))
+			continue
+		}
+		storedKeys = append(storedKeys, keys...)
+	}
 	cleaned, err := model.CleanupDeletedUsers()
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
+	// 删除用户文件（OSS/本地磁盘）
+	deleteUserStoredFiles(c.Request.Context(), storedKeys)
 	recordManageAuditFor(c, 0, "user.cleanup_deleted", map[string]interface{}{
 		"cleaned": cleaned,
 	})

@@ -214,7 +214,7 @@ function ChannelFormDialog({
                       <SelectGroup>
                         {getAssetChannelTypeOptions().map((option) => (
                           <SelectItem key={option.value} value={option.value}>
-                            {option.label}
+                            {t(option.label)}
                           </SelectItem>
                         ))}
                       </SelectGroup>
@@ -449,7 +449,9 @@ export function AssetChannelsSection() {
                     </TableCell>
                     <TableCell>
                       <StatusBadge
-                        label={typeConfig?.label ?? channel.type}
+                        label={
+                          typeConfig ? t(typeConfig.labelKey) : channel.type
+                        }
                         variant={typeConfig?.variant}
                         copyable={false}
                       />

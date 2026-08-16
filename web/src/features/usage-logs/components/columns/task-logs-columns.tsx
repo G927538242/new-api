@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { ColumnDef } from '@tanstack/react-table'
-import { Music } from 'lucide-react'
+import { ImageIcon, Music, Video } from 'lucide-react'
 /* eslint-disable react-refresh/only-export-components */
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -36,6 +36,8 @@ import {
   type AudioClip,
 } from '../dialogs/audio-preview-dialog'
 import { FailReasonDialog } from '../dialogs/fail-reason-dialog'
+import { ImageDialog } from '../dialogs/image-dialog'
+import { VideoPreviewDialog } from '../dialogs/video-preview-dialog'
 import { useUsageLogsContext } from '../usage-logs-provider'
 import {
   createDurationColumn,
@@ -54,6 +56,106 @@ function parseTaskData(data: unknown): unknown[] {
     }
   }
   return []
+}
+
+// ============================================================================
+// Task media extraction
+// 任务成功后的结果媒体（视频/图片）可从任务 data 的多种字段中提取：
+// - 明确的键名提示（image_url / images / video_url / videos 等）
+// - 通用字符串 URL 按扩展名 / data: 前缀判定类型
+// 说明：部分视频平台（如豆包）结果 URL 存于任务私有数据，data 中解析
+// 不到，此时由 isVideoTask 兜底走代理播放。
+// ============================================================================
+
+const IMAGE_HINT_KEYS = new Set([
+  'image_url',
+  'image_urls',
+  'images',
+  'image',
+  'cover',
+  'cover_url',
+  'poster_url',
+  'thumbnail',
+  'thumbnail_url',
+  'watermark_url',
+])
+const VIDEO_HINT_KEYS = new Set(['video_url', 'video_urls', 'videos', 'video'])
+const SKIP_HINT_KEYS = new Set([
+  'audio_url',
+  'audio',
+  'avatar',
+  'avatar_url',
+  'logo',
+  'icon',
+  'favicon',
+])
+
+function isVideoMedia(value: string): boolean {
+  const s = value.trim().toLowerCase()
+  if (s.startsWith('data:video')) return true
+  return /\.(mp4|webm|mov|m4v|avi|mkv)(\?|#|$)/.test(s)
+}
+
+function isImageMedia(value: string): boolean {
+  const s = value.trim().toLowerCase()
+  if (s.startsWith('data:image')) return true
+  return /\.(png|jpe?g|webp|gif|bmp|svg|avif|heic)(\?|#|$)/.test(s)
+}
+
+function extractTaskMedia(data: unknown): {
+  videos: string[]
+  images: string[]
+} {
+  const videos: string[] = []
+  const images: string[] = []
+  const visited = new Set<unknown>()
+
+  const visit = (node: unknown) => {
+    if (node === null || node === undefined || visited.has(node)) return
+    visited.add(node)
+
+    if (typeof node === 'string') {
+      const value = node.trim()
+      if (!value || (!value.startsWith('http') && !value.startsWith('data:')))
+        return
+      if (isVideoMedia(value)) videos.push(value)
+      else if (isImageMedia(value)) images.push(value)
+      return
+    }
+
+    if (Array.isArray(node)) {
+      for (const item of node) visit(item)
+      return
+    }
+
+    if (typeof node === 'object') {
+      for (const [key, value] of Object.entries(node)) {
+        if (typeof value === 'string' && value.trim()) {
+          const hintKey = key.toLowerCase()
+          const raw = value.trim()
+          if (!SKIP_HINT_KEYS.has(hintKey)) {
+            if (VIDEO_HINT_KEYS.has(hintKey)) {
+              if (raw.startsWith('http') || raw.startsWith('data:'))
+                videos.push(raw)
+              continue
+            }
+            if (IMAGE_HINT_KEYS.has(hintKey)) {
+              if (raw.startsWith('http') || raw.startsWith('data:'))
+                images.push(raw)
+              continue
+            }
+          }
+        }
+        visit(value)
+      }
+    }
+  }
+
+  visit(data)
+  return {
+    videos: [...new Set(videos)],
+    images: [...new Set(images)],
+  }
 }
 
 function AudioPreviewCell({ log }: { log: TaskLog }) {
@@ -85,6 +187,65 @@ function AudioPreviewCell({ log }: { log: TaskLog }) {
         open={open}
         onOpenChange={setOpen}
         clips={clips as AudioClip[]}
+      />
+    </>
+  )
+}
+
+// 成功视频任务预览：视频文件经 /v1/videos/:task_id/content 代理接口读取并播放
+function VideoPreviewCell({ log }: { log: TaskLog }) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+
+  return (
+    <>
+      <button
+        type='button'
+        className='group flex items-center gap-1 text-left text-xs'
+        onClick={() => setOpen(true)}
+      >
+        <Video className='text-muted-foreground size-3' />
+        <span className='text-foreground leading-snug group-hover:underline'>
+          {t('Click to preview video')}
+        </span>
+      </button>
+      <VideoPreviewDialog
+        open={open}
+        onOpenChange={setOpen}
+        taskId={log.task_id}
+      />
+    </>
+  )
+}
+
+// 成功任务图片预览：从任务 data 提取的图片 URL 直接展示
+function TaskImagePreviewCell({
+  images,
+  taskId,
+}: {
+  images: string[]
+  taskId: string
+}) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+
+  return (
+    <>
+      <button
+        type='button'
+        className='group flex items-center gap-1 text-left text-xs'
+        onClick={() => setOpen(true)}
+      >
+        <ImageIcon className='text-muted-foreground size-3' />
+        <span className='text-foreground leading-snug group-hover:underline'>
+          {t('Click to preview image')}
+        </span>
+      </button>
+      <ImageDialog
+        imageUrls={images}
+        taskId={taskId}
+        open={open}
+        onOpenChange={setOpen}
       />
     </>
   )
@@ -245,20 +406,26 @@ export function useTaskLogsColumns(isAdmin: boolean): ColumnDef<TaskLog>[] {
           log.action === TASK_ACTIONS.REFERENCE_GENERATE ||
           log.action === TASK_ACTIONS.REMIX_GENERATE
         const isSuccess = status === TASK_STATUS.SUCCESS
-        const isUrl = failReason?.startsWith('http')
 
-        if (isSuccess && isVideoTask && isUrl) {
-          const videoUrl = `/v1/videos/${log.task_id}/content`
-          return (
-            <a
-              href={videoUrl}
-              target='_blank'
-              rel='noopener noreferrer'
-              className='text-foreground text-xs hover:underline'
-            >
-              {t('Click to preview video')}
-            </a>
-          )
+        if (isSuccess) {
+          // 成功任务按实际媒体类型展示预览：视频 > 图片。
+          // 视频任务 data 解析不到 URL 时（如豆包，URL 存于私有数据），
+          // 由 isVideoTask 兜底走代理播放。
+          const media = extractTaskMedia(log.data)
+          if (media.videos.length > 0) {
+            return <VideoPreviewCell log={log} />
+          }
+          if (media.images.length > 0) {
+            return (
+              <TaskImagePreviewCell
+                images={media.images}
+                taskId={log.task_id}
+              />
+            )
+          }
+          if (isVideoTask) {
+            return <VideoPreviewCell log={log} />
+          }
         }
 
         if (!failReason) {

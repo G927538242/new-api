@@ -25,6 +25,7 @@ import {
   Layers,
   Plus,
 } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
@@ -35,14 +36,23 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { formatFileSize } from '@/lib/format'
 
 import {
   getAssetChannels,
   getAssetGroups,
   getAssets,
 } from '../../../../features/asset-library/api'
+import {
+  AssetPreviewDialog,
+  AssetThumbnail,
+} from '../../../../features/asset-library/components/asset-preview'
 import { useAssets } from '../../../../features/asset-library/components/assets-provider'
-import type { Asset, AssetChannel, AssetGroup } from '../../../../features/asset-library/types'
+import type {
+  Asset,
+  AssetChannel,
+  AssetGroup,
+} from '../../../../features/asset-library/types'
 
 function OverviewStats() {
   const { t } = useTranslation()
@@ -94,28 +104,28 @@ function OverviewStats() {
 
   const stats = [
     {
-      title: t('素材总数'),
+      title: t('Total Assets'),
       value: totalAssets,
       icon: FileImage,
       color: 'text-blue-500',
       bg: 'bg-blue-500/10',
     },
     {
-      title: t('素材分组'),
+      title: t('Asset Groups'),
       value: totalGroups,
       icon: FolderArchive,
       color: 'text-emerald-500',
       bg: 'bg-emerald-500/10',
     },
     {
-      title: t('可用模型'),
+      title: t('Available Models'),
       value: totalModels,
       icon: Layers,
       color: 'text-violet-500',
       bg: 'bg-violet-500/10',
     },
     {
-      title: t('上游渠道'),
+      title: t('Upstream Channels'),
       value: totalChannels,
       icon: Boxes,
       color: 'text-amber-500',
@@ -145,6 +155,8 @@ function OverviewStats() {
 function RecentAssets() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const [previewAsset, setPreviewAsset] = useState<Asset | null>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   const { data: assetsData, isLoading } = useQuery<Asset[]>({
     queryKey: ['assets-recent'],
@@ -157,61 +169,84 @@ function RecentAssets() {
   const recentAssets = assetsData ?? []
 
   return (
-    <Card>
-      <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-        <CardTitle className='text-sm font-medium'>{t('最近素材')}</CardTitle>
-        <Button
-          variant='ghost'
-          size='sm'
-          onClick={() => navigate({ to: '/asset-library/assets' })}
-        >
-          {t('查看全部')} →
-        </Button>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <p className='text-muted-foreground text-sm'>加载中...</p>
-        ) : recentAssets.length === 0 ? (
-          <div className='py-8 text-center'>
-            <FileImage className='text-muted-foreground mx-auto mb-2 h-8 w-8 opacity-50' />
-            <p className='text-muted-foreground text-sm'>暂无素材</p>
-            <Button
-              className='mt-3'
-              size='sm'
-              onClick={() => navigate({ to: '/asset-library/assets' })}
-            >
-              <Plus className='mr-1 h-4 w-4' />
-              上传素材
-            </Button>
-          </div>
-        ) : (
-          <div className='space-y-2'>
-            {recentAssets.map((asset) => (
-              <div
-                key={asset.id}
-                className='flex items-center gap-3 rounded-md border px-3 py-2'
+    <>
+      <Card>
+        <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+          <CardTitle className='text-sm font-medium'>
+            {t('Recent Assets')}
+          </CardTitle>
+          <Button
+            variant='ghost'
+            size='sm'
+            onClick={() => navigate({ to: '/asset-library/assets' })}
+          >
+            {t('View All')} →
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <p className='text-muted-foreground text-sm'>{t('Loading...')}</p>
+          ) : recentAssets.length === 0 ? (
+            <div className='py-8 text-center'>
+              <FileImage className='text-muted-foreground mx-auto mb-2 h-8 w-8 opacity-50' />
+              <p className='text-muted-foreground text-sm'>
+                {t('No assets yet')}
+              </p>
+              <Button
+                className='mt-3'
+                size='sm'
+                onClick={() => navigate({ to: '/asset-library/assets' })}
               >
-                <div className='bg-muted flex h-10 w-10 shrink-0 items-center justify-center rounded'>
-                  <FileImage className='text-muted-foreground h-5 w-5' />
+                <Plus className='mr-1 h-4 w-4' />
+                {t('Upload Assets')}
+              </Button>
+            </div>
+          ) : (
+            <div className='space-y-2'>
+              {recentAssets.map((asset) => (
+                <div
+                  key={asset.id}
+                  className='flex items-center gap-3 rounded-md border px-3 py-2'
+                >
+                  <AssetThumbnail
+                    asset={asset}
+                    onClick={() => {
+                      setPreviewAsset(asset)
+                      setPreviewOpen(true)
+                    }}
+                  />
+                  <div className='min-w-0 flex-1'>
+                    <p className='truncate text-sm font-medium'>{asset.name}</p>
+                    <p className='text-muted-foreground text-xs'>
+                      {asset.model ?? '-'} · {formatFileSize(asset.size)}
+                    </p>
+                  </div>
                 </div>
-                <div className='min-w-0 flex-1'>
-                  <p className='truncate text-sm font-medium'>{asset.name}</p>
-                  <p className='text-muted-foreground text-xs'>
-                    {asset.model} · {(asset.size / 1024).toFixed(1)} KB
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      <AssetPreviewDialog
+        asset={previewAsset}
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+      />
+    </>
   )
 }
 
 function GroupsPreview() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+
+  const { data: channelsData } = useQuery({
+    queryKey: ['asset-channels-for-overview'],
+    queryFn: async () => {
+      const result = await getAssetChannels()
+      return result.data ?? []
+    },
+  })
 
   const { data: groupsData, isLoading } = useQuery<AssetGroup[]>({
     queryKey: ['asset-groups-recent'],
@@ -222,53 +257,62 @@ function GroupsPreview() {
   })
 
   const groups = groupsData ?? []
+  const channels = channelsData ?? []
 
   return (
     <Card>
       <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-        <CardTitle className='text-sm font-medium'>{t('最近分组')}</CardTitle>
+        <CardTitle className='text-sm font-medium'>
+          {t('Recent Groups')}
+        </CardTitle>
         <Button
           variant='ghost'
           size='sm'
           onClick={() => navigate({ to: '/asset-library/groups' })}
         >
-          {t('查看全部')} →
+          {t('View All')} →
         </Button>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <p className='text-muted-foreground text-sm'>加载中...</p>
+          <p className='text-muted-foreground text-sm'>{t('Loading...')}</p>
         ) : groups.length === 0 ? (
           <div className='py-8 text-center'>
             <FolderArchive className='text-muted-foreground mx-auto mb-2 h-8 w-8 opacity-50' />
-            <p className='text-muted-foreground text-sm'>暂无分组</p>
+            <p className='text-muted-foreground text-sm'>{t('No groups yet')}</p>
             <Button
               className='mt-3'
               size='sm'
               onClick={() => navigate({ to: '/asset-library/groups' })}
             >
               <Plus className='mr-1 h-4 w-4' />
-              创建分组
+              {t('Create Group')}
             </Button>
           </div>
         ) : (
           <div className='space-y-2'>
-            {groups.map((group) => (
-              <div
-                key={group.id}
-                className='flex items-center gap-3 rounded-md border px-3 py-2'
-              >
-                <div className='bg-muted flex h-10 w-10 shrink-0 items-center justify-center rounded'>
-                  <FolderArchive className='text-muted-foreground h-5 w-5' />
+            {groups.map((group) => {
+              const channel = channels.find(
+                (ch) => ch.id === group.channel_id
+              )
+              return (
+                <div
+                  key={group.id}
+                  className='flex items-center gap-3 rounded-md border px-3 py-2'
+                >
+                  <div className='bg-muted flex h-10 w-10 shrink-0 items-center justify-center rounded'>
+                    <FolderArchive className='text-muted-foreground h-5 w-5' />
+                  </div>
+                  <div className='min-w-0 flex-1'>
+                    <p className='truncate text-sm font-medium'>{group.name}</p>
+                    <p className='text-muted-foreground text-xs'>
+                      {group.model ?? t('No model specified')}
+                      {channel ? ` · ${channel.name}` : ''}
+                    </p>
+                  </div>
                 </div>
-                <div className='min-w-0 flex-1'>
-                  <p className='truncate text-sm font-medium'>{group.name}</p>
-                  <p className='text-muted-foreground text-xs'>
-                    {group.model ?? '未指定模型'}
-                  </p>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </CardContent>
@@ -282,9 +326,9 @@ function AssetLibraryOverview() {
     <SectionPageLayout fixedContent>
       <SectionPageLayout.Title>
         <div className='flex flex-col gap-1'>
-          <span>{t('素材概览')}</span>
+          <span>{t('Asset Overview')}</span>
           <p className='text-muted-foreground text-sm'>
-            查看素材库整体概况，快速跳转到素材和分组管理。
+            {t('asset overview description')}
           </p>
         </div>
       </SectionPageLayout.Title>

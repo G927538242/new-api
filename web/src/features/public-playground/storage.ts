@@ -16,8 +16,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import type { ChatMessage, PublicPlaygroundConfig } from './types'
-import { DEFAULT_PUBLIC_CONFIG, STORAGE_KEYS } from './types'
+import type {
+  ChatMessage,
+  PublicPlaygroundConfig,
+  VideoPlaygroundConfig,
+  VideoGenerationTask,
+} from './types'
+import {
+  DEFAULT_PUBLIC_CONFIG,
+  DEFAULT_VIDEO_CONFIG,
+  STORAGE_KEYS,
+} from './types'
 
 export function saveConfig(config: PublicPlaygroundConfig) {
   try {
@@ -61,6 +70,56 @@ export function loadMessages(): ChatMessage[] | null {
     return JSON.parse(raw) as ChatMessage[]
   } catch {
     return null
+  }
+}
+
+export function saveVideoConfig(config: VideoPlaygroundConfig) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.VIDEO_CONFIG, JSON.stringify(config))
+  } catch {
+    // ignore
+  }
+}
+
+export function getInitialVideoConfig(): VideoPlaygroundConfig {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.VIDEO_CONFIG)
+    if (!raw) return { ...DEFAULT_VIDEO_CONFIG, baseUrl: window.location.origin + '/v1' }
+    const parsed = JSON.parse(raw) as Partial<VideoPlaygroundConfig>
+    return {
+      model: parsed.model || DEFAULT_VIDEO_CONFIG.model,
+      prompt: parsed.prompt || '',
+      mode: parsed.mode || DEFAULT_VIDEO_CONFIG.mode,
+      resolution: parsed.resolution || DEFAULT_VIDEO_CONFIG.resolution,
+      ratio: parsed.ratio || DEFAULT_VIDEO_CONFIG.ratio,
+      duration: parsed.duration ?? DEFAULT_VIDEO_CONFIG.duration,
+      imageUrls: parsed.imageUrls || [],
+      videoUrl: parsed.videoUrl || '',
+      audioUrl: parsed.audioUrl || '',
+      seed: parsed.seed ?? DEFAULT_VIDEO_CONFIG.seed,
+      baseUrl: parsed.baseUrl || window.location.origin + '/v1',
+      apiKey: parsed.apiKey || '',
+    }
+  } catch {
+    return { ...DEFAULT_VIDEO_CONFIG, baseUrl: window.location.origin + '/v1' }
+  }
+}
+
+export function saveVideoTasks(tasks: VideoGenerationTask[]) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.VIDEO_TASKS, JSON.stringify(tasks))
+  } catch {
+    // ignore
+  }
+}
+
+export function loadVideoTasks(): VideoGenerationTask[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.VIDEO_TASKS)
+    if (!raw) return []
+    return JSON.parse(raw) as VideoGenerationTask[]
+  } catch {
+    return []
   }
 }
 

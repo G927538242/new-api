@@ -25,7 +25,25 @@ import { Button } from '@/components/ui/button'
 import { Markdown, slugifyHeading, type HeadingAnchor } from '@/components/ui/markdown'
 import { cn } from '@/lib/utils'
 
-import { docCategories, docPages } from './content'
+import type { DocPage } from './content'
+import { docCategories as docCategoriesZh, docPages as docPagesZh } from './content'
+import { docCategoriesEn, docPagesEn } from './content-en'
+import { docCategoriesFr, docPagesFr } from './content-fr'
+import { docCategoriesRu, docPagesRu } from './content-ru'
+import { docCategoriesJa, docPagesJa } from './content-ja'
+import { docCategoriesVi, docPagesVi } from './content-vi'
+import { docCategoriesZhTw, docPagesZhTw } from './content-zh-tw'
+
+// 文档内容按界面语言选择：zhCN 用中文，其余语言用各自翻译文件
+const DOC_CONTENT = {
+  zhCN: { categories: docCategoriesZh, pages: docPagesZh },
+  en: { categories: docCategoriesEn, pages: docPagesEn },
+  fr: { categories: docCategoriesFr, pages: docPagesFr },
+  ru: { categories: docCategoriesRu, pages: docPagesRu },
+  ja: { categories: docCategoriesJa, pages: docPagesJa },
+  vi: { categories: docCategoriesVi, pages: docPagesVi },
+  zhTW: { categories: docCategoriesZhTw, pages: docPagesZhTw },
+} as const
 
 function useBaseUrl(): string {
   return typeof window !== 'undefined' ? window.location.origin : ''
@@ -78,17 +96,19 @@ function extractToc(markdown: string): HeadingAnchor[] {
 function DocsSidebar(props: {
   currentPageId: string
   onSelect: (id: string) => void
+  docCategories: readonly string[]
+  docPages: DocPage[]
   className?: string
 }) {
   return (
     <nav className={cn('space-y-6', props.className)}>
-      {docCategories.map((category) => (
+      {props.docCategories.map((category) => (
         <div key={category}>
           <h3 className='text-muted-foreground/60 mb-2 px-3 text-xs font-semibold tracking-wider uppercase'>
             {category}
           </h3>
           <ul className='space-y-0.5'>
-            {docPages
+            {props.docPages
               .filter((p) => p.category === category)
               .map((page) => (
                 <li key={page.id}>
@@ -151,8 +171,13 @@ function DocsToc(props: {
 }
 
 export function Docs() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const baseUrl = useBaseUrl()
+  // 文档内容按界面语言切换
+  const docContent =
+    DOC_CONTENT[i18n.language as keyof typeof DOC_CONTENT] ?? DOC_CONTENT.en
+  const docCategories = docContent.categories
+  const docPages = docContent.pages
   const [currentPageId, setCurrentPageId] = useState(docPages[0]?.id ?? '')
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [activeHeadingId, setActiveHeadingId] = useState('')
@@ -236,12 +261,15 @@ export function Docs() {
 
   return (
     <PublicLayout showMainContainer={false}>
+      <div className='bg-gradient-to-b from-sky-100/70 via-white/30 to-transparent dark:from-sky-950/30 dark:via-slate-950/10 dark:to-transparent'>
       <div className='mx-auto flex max-w-[1400px] gap-0 px-0 pt-16 md:pt-20'>
         {/* Desktop sidebar */}
         <aside className='sticky top-20 hidden h-[calc(100vh-5rem)] w-64 shrink-0 overflow-y-auto border-r px-4 py-8 md:block'>
           <DocsSidebar
             currentPageId={currentPageId}
             onSelect={selectPage}
+            docCategories={docCategories}
+            docPages={docPages}
           />
         </aside>
 
@@ -278,6 +306,8 @@ export function Docs() {
               <DocsSidebar
                 currentPageId={currentPageId}
                 onSelect={selectPage}
+                docCategories={docCategories}
+                docPages={docPages}
               />
             </aside>
           </div>
@@ -348,6 +378,7 @@ export function Docs() {
             onSelect={selectHeading}
           />
         </aside>
+      </div>
       </div>
     </PublicLayout>
   )

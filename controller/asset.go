@@ -140,7 +140,7 @@ func UploadAsset(c *gin.Context) {
 		return
 	}
 
-	url, err := storage.Upload(c.Request.Context(), file, objectKey, mimeType)
+	url, err := storage.Upload(c.Request.Context(), file, header.Size, objectKey, mimeType)
 	if err != nil {
 		common.ApiError(c, err)
 		return

@@ -131,15 +131,15 @@ export const ASSET_CHANNEL_TYPE_VALUES = [
 
 export const ASSET_CHANNEL_TYPE_CONFIG: Record<
   string,
-  { label: string; value: string; variant: StatusBadgeProps['variant'] }
+  { labelKey: string; value: string; variant: StatusBadgeProps['variant'] }
 > = {
   [ASSET_CHANNEL_TYPES.VOLCARK]: {
-    label: '字节官方',
+    labelKey: 'Volcengine Ark',
     value: ASSET_CHANNEL_TYPES.VOLCARK,
     variant: 'info',
   },
   [ASSET_CHANNEL_TYPES.MOMA]: {
-    label: '移动MOMA平台',
+    labelKey: 'MOMA Platform',
     value: ASSET_CHANNEL_TYPES.MOMA,
     variant: 'purple',
   },
@@ -147,7 +147,7 @@ export const ASSET_CHANNEL_TYPE_CONFIG: Record<
 
 export function getAssetChannelTypeOptions() {
   return ASSET_CHANNEL_TYPE_VALUES.map((type) => ({
-    label: ASSET_CHANNEL_TYPE_CONFIG[type].label,
+    label: ASSET_CHANNEL_TYPE_CONFIG[type].labelKey,
     value: type,
   }))
 }
@@ -184,27 +184,27 @@ export const ASSET_STATUS_CONFIG: Record<
   }
 > = {
   [ASSET_STATUS.PENDING]: {
-    labelKey: '待处理',
+    labelKey: 'Asset Pending',
     variant: 'warning',
     value: ASSET_STATUS.PENDING,
   },
   [ASSET_STATUS.PROCESSING]: {
-    labelKey: '处理中',
+    labelKey: 'Processing',
     variant: 'info',
     value: ASSET_STATUS.PROCESSING,
   },
   [ASSET_STATUS.ACTIVE]: {
-    labelKey: '已生效',
+    labelKey: 'Active',
     variant: 'success',
     value: ASSET_STATUS.ACTIVE,
   },
   [ASSET_STATUS.FAILED]: {
-    labelKey: '失败',
+    labelKey: 'Failed',
     variant: 'danger',
     value: ASSET_STATUS.FAILED,
   },
   [ASSET_STATUS.LOCAL]: {
-    labelKey: '本地',
+    labelKey: 'Local',
     variant: 'neutral',
     value: ASSET_STATUS.LOCAL,
   },
@@ -240,11 +240,11 @@ export const ERROR_MESSAGES = {
   SEARCH_FAILED: 'Failed to search assets',
   UPLOAD_FAILED: 'Failed to upload asset',
   DELETE_FAILED: 'Failed to delete asset',
-  LOAD_GROUPS_FAILED: '加载分组列表失败',
-  CREATE_GROUP_FAILED: '创建分组失败',
-  UPDATE_GROUP_FAILED: '更新分组失败',
-  DELETE_GROUP_FAILED: '删除分组失败',
-  SYNC_FAILED: '同步状态失败',
+  LOAD_GROUPS_FAILED: 'Failed to load asset groups',
+  CREATE_GROUP_FAILED: 'Failed to create asset group',
+  UPDATE_GROUP_FAILED: 'Failed to update asset group',
+  DELETE_GROUP_FAILED: 'Failed to delete asset group',
+  SYNC_FAILED: 'Failed to sync asset status',
 } as const
 
 // ============================================================================
@@ -255,8 +255,8 @@ export const SUCCESS_MESSAGES = {
   ASSET_UPLOADED: 'Asset uploaded successfully',
   ASSET_DELETED: 'Asset deleted successfully',
   COPY_SUCCESS: 'Copied to clipboard',
-  GROUP_CREATED: '分组创建成功',
-  GROUP_UPDATED: '分组更新成功',
-  GROUP_DELETED: '分组删除成功',
-  SYNC_SUCCESS: '同步状态成功',
+  GROUP_CREATED: 'Asset group created successfully',
+  GROUP_UPDATED: 'Asset group updated successfully',
+  GROUP_DELETED: 'Asset group deleted successfully',
+  SYNC_SUCCESS: 'Asset status synced successfully',
 } as const

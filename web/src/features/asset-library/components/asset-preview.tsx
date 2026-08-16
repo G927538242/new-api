@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Film, Loader2, Music } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import {
   Dialog,
@@ -151,6 +152,7 @@ export function AssetPreviewDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const { t } = useTranslation()
   const { blobUrl, loading, error } = useAssetBlobUrl(asset?.url)
 
   if (!asset) return null
@@ -167,7 +169,7 @@ export function AssetPreviewDialog({
           )}
           {error && (
             <div className='text-sm text-muted-foreground'>
-              素材加载失败
+              {t('Failed to load asset')}
             </div>
           )}
           {!loading && !error && blobUrl && asset.type === 'image' && (

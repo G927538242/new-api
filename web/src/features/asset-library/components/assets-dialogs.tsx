@@ -142,11 +142,11 @@ function GroupMutateDialog({
     <Dialog
       open={isOpen}
       onOpenChange={(v) => !v && setOpen(null)}
-      title={isEdit ? t('编辑分组') : t('新建分组')}
+      title={isEdit ? t('Edit Group') : t('New Group')}
       description={
         isEdit
-          ? t('更新分组信息')
-          : t('创建一个新的素材分组')
+          ? t('Update group info')
+          : t('Create a new asset group')
       }
       contentHeight='auto'
       bodyClassName='space-y-4'
@@ -176,16 +176,20 @@ function GroupMutateDialog({
       {!isEdit && currentChannel && (
         <div className='rounded-lg border bg-muted/30 px-3 py-2 text-sm'>
           <div className='flex items-center gap-1.5'>
-            <span className='text-muted-foreground'>归属渠道：</span>
+            <span className='text-muted-foreground'>
+              {t('Bound channel:')}
+            </span>
             <span className='font-medium'>{currentChannel.name}</span>
-            <span className='text-muted-foreground'>· 模型：</span>
+            <span className='text-muted-foreground'>
+              {t('Model:')}
+            </span>
             <span className='font-medium'>{currentModel}</span>
           </div>
         </div>
       )}
       {!isEdit && !currentChannel && (
         <div className='rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive'>
-          请先在「系统设置 → 运营 → 素材渠道」配置渠道后，再创建素材分组。
+          {t('configure asset channel first hint')}
         </div>
       )}
       <Form {...form}>
@@ -199,10 +203,10 @@ function GroupMutateDialog({
             name='name'
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('分组名称')} *</FormLabel>
+                <FormLabel>{t('Group Name')} *</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder={t('请输入分组名称')}
+                    placeholder={t('Enter group name')}
                     {...field}
                   />
                 </FormControl>
@@ -216,10 +220,10 @@ function GroupMutateDialog({
             name='description'
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('描述')}</FormLabel>
+                <FormLabel>{t('Description')}</FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder={t('请输入分组描述')}
+                    placeholder={t('Enter group description')}
                     rows={3}
                     {...field}
                   />

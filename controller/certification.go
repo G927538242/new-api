@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -59,23 +61,24 @@ func UploadCertificationFile(c *gin.Context) {
 	}
 
 	// 存储 key：{userId}/{uuid}{ext}
-	objectKey := filepath.Join(strconv.Itoa(userId), uuid.New().String()+ext)
-	fullPath := filepath.Join(certUploadDir, objectKey)
-	if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
-		common.ApiErrorMsg(c, "创建上传目录失败")
-		return
-	}
-	f, err := os.Create(fullPath)
+	// 统一走系统「存储配置」（服务端配置 asset_setting）：本地磁盘或 S3/OSS/MinIO/TOS 兼容对象存储
+	objectKey := strconv.Itoa(userId) + "/" + uuid.New().String() + ext
+
+	storage, err := service.GetAssetStorage()
 	if err != nil {
-		common.ApiErrorMsg(c, "保存文件失败")
+		common.ApiErrorMsg(c, "存储初始化失败")
 		return
 	}
-	defer f.Close()
-	if _, err := f.ReadFrom(file); err != nil {
+	contentType := mime.TypeByExtension(ext)
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	if _, err := storage.Upload(c.Request.Context(), file, header.Size, objectKey, contentType); err != nil {
 		common.ApiErrorMsg(c, "保存文件失败")
 		return
 	}
 
+	// URL 保持统一格式，经 /api/certification/file/{key} 鉴权访问，存储位置对前端透明
 	common.ApiSuccess(c, gin.H{
 		"url": "/api/certification/file/" + objectKey,
 		"key": objectKey,
@@ -553,7 +556,20 @@ func ServeCertificationFile(c *gin.Context) {
 		return
 	}
 
-	// 防路径穿越：确保解析后的路径仍位于证书目录内
+	// 统一存储抽象读取（本地 uploads/assets/ 或 S3/OSS 兼容对象存储，取决于系统「存储配置」）
+	if storage, serr := service.GetAssetStorage(); serr == nil {
+		if reader, oerr := storage.Open(c.Request.Context(), key); oerr == nil {
+			defer reader.Close()
+			contentType := mime.TypeByExtension(filepath.Ext(key))
+			if contentType == "" {
+				contentType = "application/octet-stream"
+			}
+			c.DataFromReader(http.StatusOK, -1, contentType, reader, nil)
+			return
+		}
+	}
+
+	// 回退旧版本地目录 uploads/certification/{key}（历史文件）
 	fullPath := filepath.Join(certUploadDir, key)
 	cleanPath := filepath.Clean(fullPath)
 	absDir, err := filepath.Abs(certUploadDir)

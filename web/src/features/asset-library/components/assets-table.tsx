@@ -74,7 +74,7 @@ function useAssetsColumns(
   // 上游渠道列仅管理员可见，普通用户不暴露渠道信息
   const channelColumn: ColumnDef<Asset> = {
     accessorKey: 'channel_id',
-    header: t('上游渠道'),
+    header: t('Upstream Channel'),
     meta: { mobileHidden: true },
     cell: ({ row }) => {
       const channelId = row.original.channel_id
@@ -176,7 +176,7 @@ function useAssetsColumns(
     },
     {
       accessorKey: 'status',
-      header: t('状态'),
+      header: t('Status'),
       meta: { mobileHidden: true },
       cell: ({ row }) => {
         const status = row.original.status
@@ -329,7 +329,7 @@ function AssetsRowActions<TData>({
               size='icon-sm'
               onClick={handleSyncStatus}
               disabled={isSyncing}
-              aria-label={t('同步状态')}
+              aria-label={t('Sync Status')}
             />
           }
         >
@@ -337,7 +337,7 @@ function AssetsRowActions<TData>({
             className={isSyncing ? 'h-4 w-4 animate-spin' : 'h-4 w-4'}
           />
         </TooltipTrigger>
-        <TooltipContent>{t('同步状态')}</TooltipContent>
+        <TooltipContent>{t('Sync Status')}</TooltipContent>
       </Tooltip>
 
       <Tooltip>
@@ -598,11 +598,11 @@ export function AssetsTable() {
             onValueChange={handleGroupFilterChange}
           >
             <SelectTrigger size='sm' className='w-[160px]'>
-              <SelectValue placeholder={t('选择分组')} />
+              <SelectValue placeholder={t('Select group')} />
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
               <SelectGroup>
-                <SelectItem value='all'>{t('全部分组')}</SelectItem>
+                <SelectItem value='all'>{t('All groups')}</SelectItem>
                 {groups.map((group) => (
                   <SelectItem key={group.id} value={String(group.id)}>
                     {group.name}
@@ -621,7 +621,7 @@ export function AssetsTable() {
           },
           {
             columnId: 'status',
-            title: t('状态'),
+            title: t('Status'),
             options: assetStatusOptions,
             singleSelect: true,
           },

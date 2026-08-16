@@ -1004,19 +1004,48 @@ func hardDeleteUserWithAllData(userId int) error {
 	return nil
 }
 
-// CleanupDeletedUsers 物理删除所有已注销（软删除）用户及其子账户的全部关联数据，返回清理数量。
-func CleanupDeletedUsers() (int, error) {
+// CollectUserStoredKeys 收集用户存储在对象存储/本地磁盘的文件 key（素材 + 认证证件图片）。
+// 供 controller 在删除用户前调用（删除后记录不再可查）。
+func CollectUserStoredKeys(userId int) ([]string, error) {
+	var keys []string
+	// 素材文件
+	var assetKeys []string
+	if err := DB.Unscoped().Model(&Asset{}).Where("user_id = ?", userId).Pluck("storage_key", &assetKeys).Error; err != nil {
+		return nil, err
+	}
+	keys = append(keys, assetKeys...)
+	// 认证证件图片（URL 格式 /api/certification/file/{key}，提取 key 即为存储 key）
+	var certs []UserCertification
+	if err := DB.Unscoped().Where("user_id = ?", userId).Find(&certs).Error; err != nil {
+		return nil, err
+	}
+	const certFilePrefix = "/api/certification/file/"
+	for _, cert := range certs {
+		for _, u := range []string{cert.IdCardFront, cert.IdCardBack, cert.BusinessLicense, cert.ContactIdFront, cert.ContactIdBack} {
+			if u == "" {
+				continue
+			}
+			if k := strings.TrimPrefix(u, certFilePrefix); k != u {
+				keys = append(keys, k)
+			}
+		}
+	}
+	return keys, nil
+}
+
+// ListUsersToCleanup 返回所有待物理清理的用户 id（含其子账户）。
+func ListUsersToCleanup() ([]int, error) {
 	var deletedIds []int
 	if err := DB.Unscoped().Model(&User{}).Where("deleted_at IS NOT NULL").Pluck("id", &deletedIds).Error; err != nil {
-		return 0, err
+		return nil, err
 	}
 	if len(deletedIds) == 0 {
-		return 0, nil
+		return nil, nil
 	}
 	// 收集这些用户下的子账户，一并清理
 	var subIds []int
 	if err := DB.Unscoped().Model(&User{}).Where("parent_user_id IN ?", deletedIds).Pluck("id", &subIds).Error; err != nil {
-		return 0, err
+		return nil, err
 	}
 	ids := append(deletedIds, subIds...)
 	seen := make(map[int]bool, len(ids))
@@ -1027,7 +1056,15 @@ func CleanupDeletedUsers() (int, error) {
 			unique = append(unique, id)
 		}
 	}
+	return unique, nil
+}
 
+// CleanupDeletedUsers 物理删除所有已注销（软删除）用户及其子账户的全部关联数据，返回清理数量。
+func CleanupDeletedUsers() (int, error) {
+	unique, err := ListUsersToCleanup()
+	if err != nil {
+		return 0, err
+	}
 	cleaned := 0
 	for _, id := range unique {
 		if err := hardDeleteUserWithAllData(id); err != nil {

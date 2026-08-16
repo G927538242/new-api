@@ -1894,8 +1894,9 @@ curl --location '{{BASE_URL}}/v1/video/generations' \\
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
 | \`file\` | file | 是 | 素材文件 |
-| \`name\` | string | 否 | 自定义素材名称 |
-| \`model\` | string | 否 | 生成模型标识，如 \`sendance-2.0\` / \`sendance-2.5\` |
+| \`group_id\` | integer | 是 | 素材分组 ID（素材必须归属分组） |
+| \`model\` | string | 是 | 生成模型标识，如 \`sendance-2.0\` / \`sendance-2.5\` |
+| \`channel_id\` | integer | 否 | 上游渠道 ID（不传则取分组所属渠道） |
 
 ### 文件大小限制（与火山引擎 Seedance 对齐）
 
@@ -1913,7 +1914,7 @@ curl --location '{{BASE_URL}}/v1/video/generations' \\
 curl --location '{{BASE_URL}}/api/asset' \\
 --header 'Authorization: Bearer <token>' \\
 --form 'file=@/path/to/video.mp4' \\
---form 'name=开场视频' \\
+--form 'group_id=1' \\
 --form 'model=sendance-2.0'
 \`\`\`
 
