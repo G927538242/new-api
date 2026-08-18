@@ -58,7 +58,7 @@ export const STORAGE_KEYS = {
 export type VideoMode = 'text-to-video' | 'image-to-video' | 'video-extension'
 
 export type VideoResolutions = '480p' | '720p' | '1080p' | '4k'
-export type VideoRatio = '16:9' | '9:16' | '1:1'
+export type VideoRatio = '21:9' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16'
 
 export interface VideoContentItem {
   type: 'text' | 'image_url' | 'video_url' | 'audio_url'
@@ -90,23 +90,25 @@ export interface VideoPlaygroundConfig {
   ratio: VideoRatio
   duration: number
   imageUrls: string[]
-  videoUrl: string
-  audioUrl: string
+  /** 视频延长/编辑的参考视频 URL 列表 */
+  videoUrls: string[]
+  /** 视频延长/编辑的参考音频 URL 列表 */
+  audioUrls: string[]
   seed: number
   baseUrl: string
   apiKey: string
 }
 
 export const DEFAULT_VIDEO_CONFIG: VideoPlaygroundConfig = {
-  model: 'doubao-seedance-2-0-260128',
+  model: 'doubao-seedance-2-5-260628',
   prompt: '',
   mode: 'text-to-video',
   resolution: '1080p',
   ratio: '16:9',
   duration: 5,
   imageUrls: [],
-  videoUrl: '',
-  audioUrl: '',
+  videoUrls: [],
+  audioUrls: [],
   seed: -1,
   baseUrl: window.location.origin + '/v1',
   apiKey: '',
@@ -126,6 +128,14 @@ export interface VideoModelItem {
   capabilities: string[]
   resolutions: string[]
   ratios: string[]
+  /** 生成时长范围（秒），缺省为 [4, 30] */
+  durationRange?: [number, number]
+  /** 图生视频最多参考图片数，缺省 3 */
+  maxImages?: number
+  /** 视频延长最多参考视频数，缺省 1 */
+  maxVideos?: number
+  /** 视频延长最多参考音频数，缺省 1 */
+  maxAudios?: number
 }
 
 export const VIDEO_MODEL_GROUPS: VideoModelGroup[] = [
@@ -137,10 +147,14 @@ export const VIDEO_MODEL_GROUPS: VideoModelGroup[] = [
       {
         id: 'doubao-seedance-2-5-260628',
         name: 'Seedance 2.5',
-        description: '最新版本，综合能力最强',
+        description: '最新版本，综合能力最强，最长 30 秒',
         capabilities: ['t2v', 'i2v', 'video-extension'],
-        resolutions: ['480p', '720p', '1080p', '4k'],
-        ratios: ['16:9', '9:16', '1:1'],
+        resolutions: ['480p', '720p', '1080p'],
+        ratios: ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16'],
+        durationRange: [4, 30],
+        maxImages: 30,
+        maxVideos: 10,
+        maxAudios: 10,
       },
       {
         id: 'doubao-seedance-2-0-260128',
@@ -149,6 +163,10 @@ export const VIDEO_MODEL_GROUPS: VideoModelGroup[] = [
         capabilities: ['t2v', 'i2v', 'video-extension'],
         resolutions: ['480p', '720p', '1080p'],
         ratios: ['16:9', '9:16', '1:1'],
+        durationRange: [4, 15],
+        maxImages: 9,
+        maxVideos: 3,
+        maxAudios: 3,
       },
       {
         id: 'doubao-seedance-2-0-fast-260128',
@@ -157,6 +175,7 @@ export const VIDEO_MODEL_GROUPS: VideoModelGroup[] = [
         capabilities: ['t2v', 'i2v'],
         resolutions: ['480p', '720p'],
         ratios: ['16:9', '9:16', '1:1'],
+        durationRange: [4, 15],
       },
       {
         id: 'doubao-seedance-2-0-mini-260615',
@@ -165,6 +184,7 @@ export const VIDEO_MODEL_GROUPS: VideoModelGroup[] = [
         capabilities: ['t2v', 'i2v'],
         resolutions: ['480p', '720p'],
         ratios: ['16:9', '9:16', '1:1'],
+        durationRange: [4, 15],
       },
       {
         id: 'doubao-seedance-1-5-pro-251215',
@@ -173,6 +193,7 @@ export const VIDEO_MODEL_GROUPS: VideoModelGroup[] = [
         capabilities: ['t2v', 'i2v'],
         resolutions: ['480p', '720p', '1080p'],
         ratios: ['16:9', '9:16', '1:1'],
+        durationRange: [4, 12],
       },
       {
         id: 'doubao-seedance-1-0-pro-250528',
@@ -181,6 +202,7 @@ export const VIDEO_MODEL_GROUPS: VideoModelGroup[] = [
         capabilities: ['t2v', 'i2v'],
         resolutions: ['480p', '720p', '1080p'],
         ratios: ['16:9', '9:16', '1:1'],
+        durationRange: [2, 12],
       },
       {
         id: 'doubao-seedance-1-0-lite-t2v',
@@ -189,6 +211,7 @@ export const VIDEO_MODEL_GROUPS: VideoModelGroup[] = [
         capabilities: ['t2v'],
         resolutions: ['480p', '720p'],
         ratios: ['16:9', '9:16', '1:1'],
+        durationRange: [2, 12],
       },
       {
         id: 'doubao-seedance-1-0-lite-i2v',
@@ -197,6 +220,7 @@ export const VIDEO_MODEL_GROUPS: VideoModelGroup[] = [
         capabilities: ['i2v'],
         resolutions: ['480p', '720p'],
         ratios: ['16:9', '9:16', '1:1'],
+        durationRange: [2, 12],
       },
     ],
   },

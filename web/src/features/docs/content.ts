@@ -1757,7 +1757,7 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
 | \`doubao-seedance-2-0-260128\` | 2.0 标准版 |
 | \`doubao-seedance-2-0-fast-260128\` | 2.0 快速版，低延迟 |
 | \`doubao-seedance-2-0-mini-260615\` | 2.0 Mini，轻量低成本 |
-| \`doubao-seedance-2-5-260628\` | 2.5 最新版 |
+| \`doubao-seedance-2-5-260628\` | 2.5 最新版，最长 30 秒，支持 21:9 与多模态参考（30 图 + 10 视频 + 10 音频） |
 
 ### 其他模型
 
@@ -1774,9 +1774,9 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
 | \`image_url\` | string | 否 | 参考图片 URL（图生视频模式） |
 | \`images\` | array | 否 | 多图输入（Seedance 图生视频，按顺序映射 first_frame / last_frame / reference_image） |
 | \`resolution\` | string | 否 | 输出分辨率（Seedance：480p / 720p / 1080p / 4k） |
-| \`ratio\` | string | 否 | 画面比例（Seedance：16:9 / 9:16 / 1:1） |
+| \`ratio\` | string | 否 | 画面比例（Seedance 2.5：21:9 / 16:9 / 4:3 / 1:1 / 3:4 / 9:16；其余：16:9 / 9:16 / 1:1） |
 | \`size\` | string | 否 | 视频尺寸，如 1280x720 |
-| \`duration\` | integer | 否 | 视频时长（秒） |
+| \`duration\` | integer | 否 | 视频时长（秒）。Seedance 2.5 支持 4–30，2.0 系列 4–15，1.5 4–12，1.0 2–12 |
 | \`n\` | integer | 否 | 生成数量，默认 1 |
 | \`metadata\` | object | 否 | 扩展参数，支持多模态输入（video_url / audio_url）及 negative_prompt、style、watermark 等 |
 
@@ -1784,10 +1784,11 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
 
 \`\`\`json
 {
-    "model": "doubao-seedance-2-0-260128",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "宇航员漫步月球",
     "resolution": "1080p",
-    "ratio": "16:9"
+    "ratio": "16:9",
+    "duration": 5
 }
 \`\`\`
 
@@ -1795,7 +1796,7 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
 
 \`\`\`json
 {
-    "model": "doubao-seedance-1-0-lite-i2v",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "在首帧基础上添加烟花效果",
     "images": [
         "https://example.com/first-frame.jpg",
@@ -1808,7 +1809,7 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
 
 \`\`\`json
 {
-    "model": "doubao-seedance-2-0-260128",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "让视频中的人物转身看向镜头",
     "metadata": {
         "content": [
@@ -1816,6 +1817,12 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
                 "type": "video_url",
                 "video_url": {
                     "url": "https://example.com/input.mp4"
+                }
+            },
+            {
+                "type": "audio_url",
+                "audio_url": {
+                    "url": "https://example.com/bgm.mp3"
                 }
             }
         ]
@@ -1830,38 +1837,64 @@ curl --location '{{BASE_URL}}/v1/video/generations' \\
 --header 'Authorization: Bearer <token>' \\
 --header 'Content-Type: application/json' \\
 --data '{
-    "model": "doubao-seedance-2-0-260128",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "宇航员漫步月球",
     "resolution": "1080p",
-    "ratio": "16:9"
+    "ratio": "16:9",
+    "duration": 5
 }'
 \`\`\`
 
 ## 返回响应
 
-### 200 成功
+### 200 成功（任务已提交）
 
 \`\`\`json
 {
-    "id": "video-abc123",
-    "object": "video.generation",
-    "created": 1713833628,
-    "model": "doubao-seedance-2-0-260128",
-    "data": [
-        {
-            "url": "https://cdn.example.com/video-001.mp4",
-            "status": "completed"
-        }
-    ],
-    "usage": {
-        "prompt_tokens": 20,
-        "completion_tokens": 0,
-        "total_tokens": 20
+    "id": "task_xxxxxxxx",
+    "task_id": "task_xxxxxxxx",
+    "object": "video",
+    "model": "doubao-seedance-2-5-260628",
+    "status": "queued",
+    "progress": 0,
+    "created_at": 1713833628
+}
+\`\`\`
+
+## 查询任务状态
+
+> **GET** \`/v1/video/generations/{task_id}\`
+
+提交任务后，通过轮询该接口获取生成进度与结果。
+
+### 任务状态
+
+| 状态 | 说明 |
+|---|---|
+| \`QUEUED\` | 排队中，等待开始生成 |
+| \`IN_PROGRESS\` | 生成中，progress 为当前进度 |
+| \`SUCCESS\` | 已完成，result_url 为视频地址 |
+| \`FAILURE\` | 生成失败，fail_reason 为失败原因 |
+
+### 响应示例（已完成）
+
+\`\`\`json
+{
+    "code": "success",
+    "message": "",
+    "data": {
+        "id": 123,
+        "task_id": "task_xxxxxxxx",
+        "status": "SUCCESS",
+        "progress": "100%",
+        "result_url": "https://example.com/video.mp4",
+        "model": "doubao-seedance-2-5-260628",
+        "fail_reason": ""
     }
 }
 \`\`\`
 
-> **注意**：Seedance 2.0 / 2.5 支持多模态输入（视频 + 音频 + 图片），可通过 \`metadata.content\` 传入；任务提交后需通过 \`GET /v1/video/generations/{task_id}\` 轮询任务状态。`,
+> **注意**：Seedance 2.0 / 2.5 支持多模态输入（视频 + 音频 + 图片），可通过 \`metadata.content\` 传入；其中 2.5 单次最多支持 30 张图片、10 段视频、10 段音频参考，并支持最长 30 秒的单段生成与多轮续写。任务提交后需通过 \`GET /v1/video/generations/{task_id}\` 轮询任务状态。`,
   },
   {
     id: 'asset-library',

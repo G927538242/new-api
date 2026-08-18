@@ -1170,7 +1170,7 @@
       "post": {
         "summary": "创建视频生成任务",
         "deprecated": false,
-        "description": "提交视频生成任务，支持文生视频和图生视频，兼容豆包 Seedance (Sendance) 视频生成协议。\n\n支持模型：\n- Seedance：`doubao-seedance-1-0-pro-250528` / `doubao-seedance-1-0-lite-t2v` / `doubao-seedance-1-0-lite-i2v` / `doubao-seedance-1-5-pro-251215` / `doubao-seedance-2-0-260128` / `doubao-seedance-2-0-fast-260128` / `doubao-seedance-2-0-mini-260615` / `doubao-seedance-2-5-260628`\n- 其他：`kling-v1` / `kling-v2` / `cogvideox-2` / `vidu-1` / `jimeng` / `sora`\n\n返回任务 ID，可通过 GET 接口查询任务状态。\n",
+        "description": "提交视频生成任务，支持文生视频、图生视频（首帧/首尾帧）与多模态参考，兼容豆包 Seedance (Sendance) 视频生成协议。\n\n支持模型：\n- Seedance：`doubao-seedance-1-0-pro-250528` / `doubao-seedance-1-0-lite-t2v` / `doubao-seedance-1-0-lite-i2v` / `doubao-seedance-1-5-pro-251215` / `doubao-seedance-2-0-260128` / `doubao-seedance-2-0-fast-260128` / `doubao-seedance-2-0-mini-260615` / `doubao-seedance-2-5-260628`（2.5 最新版：最长 30 秒、支持 21:9 比例、单次最多 30 张图片 + 10 段视频 + 10 段音频参考）\n- 其他：`kling-v1` / `kling-v2` / `cogvideox-2` / `vidu-1` / `jimeng` / `sora`\n\n支持的分辨率（`resolution`）、画面比例（`ratio`）与时长（`duration`）随模型能力而定；`resolution` / `ratio` / `duration` / `seed` 可直接作为顶层参数传入。\n\n返回任务 ID，可通过 GET 接口查询任务状态。\n",
         "operationId": "createVideoGeneration",
         "tags": [
           "视频生成"
@@ -1183,17 +1183,25 @@
                 "$ref": "#/components/schemas/VideoRequest"
               },
               "example": {
-                "model": "doubao-seedance-2-0-260128",
+                "model": "doubao-seedance-2-5-260628",
                 "prompt": "宇航员在月球上漫步",
                 "duration": 5,
                 "resolution": "1080p",
                 "ratio": "16:9",
+                "seed": 20231234,
                 "metadata": {
                   "content": [
                     {
-                      "type": "video_url",
-                      "video_url": {
-                        "url": "https://example.com/input.mp4"
+                      "type": "image_url",
+                      "image_url": {
+                        "url": "https://example.com/first-frame.jpg"
+                      },
+                      "role": "first_frame"
+                    },
+                    {
+                      "type": "audio_url",
+                      "audio_url": {
+                        "url": "https://example.com/bgm.mp3"
                       }
                     }
                   ]
@@ -1238,7 +1246,7 @@
       "get": {
         "summary": "获取视频生成任务状态",
         "deprecated": false,
-        "description": "查询视频生成任务的状态和结果。\n\n任务状态：\n- `queued`: 排队中\n- `in_progress`: 生成中\n- `completed`: 已完成\n- `failed`: 失败\n",
+        "description": "查询视频生成任务的状态和结果。\n\n任务状态：\n- `QUEUED`: 排队中\n- `IN_PROGRESS`: 生成中\n- `SUCCESS`: 已完成，`result_url` 为视频地址\n- `FAILURE`: 失败，`fail_reason` 为失败原因\n",
         "operationId": "getVideoGeneration",
         "tags": [
           "视频生成"
@@ -4685,8 +4693,8 @@
         "properties": {
           "model": {
             "type": "string",
-            "description": "视频生成模型。Seedance 系列：doubao-seedance-1-0-pro-250528 / doubao-seedance-1-0-lite-t2v / doubao-seedance-1-0-lite-i2v / doubao-seedance-1-5-pro-251215 / doubao-seedance-2-0-260128 / doubao-seedance-2-0-fast-260128 / doubao-seedance-2-0-mini-260615 / doubao-seedance-2-5-260628；其他：kling-v1 / kling-v2 / cogvideox-2 / vidu-1",
-            "example": "doubao-seedance-2-0-260128"
+            "description": "视频生成模型。Seedance 系列：doubao-seedance-1-0-pro-250528 / doubao-seedance-1-0-lite-t2v / doubao-seedance-1-0-lite-i2v / doubao-seedance-1-5-pro-251215 / doubao-seedance-2-0-260128 / doubao-seedance-2-0-fast-260128 / doubao-seedance-2-0-mini-260615 / doubao-seedance-2-5-260628（2.5 最新版，最长 30 秒，支持 21:9 与最多 30 张图片 + 10 段视频 + 10 段音频参考）；其他：kling-v1 / kling-v2 / cogvideox-2 / vidu-1",
+            "example": "doubao-seedance-2-5-260628"
           },
           "prompt": {
             "type": "string",
@@ -4716,12 +4724,12 @@
           },
           "ratio": {
             "type": "string",
-            "description": "画面比例（Seedance 支持 16:9 / 9:16 / 1:1）",
+            "description": "画面比例（Seedance 2.5 支持 21:9 / 16:9 / 4:3 / 1:1 / 3:4 / 9:16；其余 Seedance 支持 16:9 / 9:16 / 1:1）",
             "example": "16:9"
           },
           "duration": {
-            "type": "number",
-            "description": "视频时长（秒）",
+            "type": "integer",
+            "description": "视频时长（秒），可作为顶层参数或通过 metadata 传入。Seedance 2.5 支持 4–30，2.0 系列 4–15，1.5 pro 4–12，1.0 系列 2–12",
             "example": 5
           },
           "width": {
@@ -4761,7 +4769,7 @@
           },
           "metadata": {
             "type": "object",
-            "description": "扩展参数。Seedance 支持通过 metadata.content 传入多模态输入：\n- { type: \"text\", text: \"...\" }\n- { type: \"image_url\", image_url: { url }, role: first_frame | last_frame | reference_image }\n- { type: \"video_url\", video_url: { url } }\n- { type: \"audio_url\", audio_url: { url } }\n其他：negative_prompt, style, quality_level, watermark 等",
+            "description": "扩展参数。Seedance 支持通过 metadata.content 传入多模态输入：\n- { type: \"text\", text: \"...\" }\n- { type: \"image_url\", image_url: { url }, role: first_frame | last_frame | reference_image }\n- { type: \"video_url\", video_url: { url } }\n- { type: \"audio_url\", audio_url: { url } }\n参考数量上限：Seedance 2.5 最多 30 张图片 + 10 段视频 + 10 段音频；2.0 系列最多 9 张图片 + 3 段视频 + 3 段音频\n其他：negative_prompt, style, quality_level, watermark 等",
             "additionalProperties": true,
             "properties": {}
           }
@@ -4796,16 +4804,16 @@
             "type": "string",
             "description": "任务状态",
             "enum": [
-              "queued",
-              "in_progress",
-              "completed",
-              "failed"
+              "QUEUED",
+              "IN_PROGRESS",
+              "SUCCESS",
+              "FAILURE"
             ],
-            "example": "completed"
+            "example": "SUCCESS"
           },
           "url": {
             "type": "string",
-            "description": "视频资源 URL（成功时）",
+            "description": "视频资源 URL（成功时）。实际返回字段为 result_url，与 url 同义",
             "example": "https://example.com/video.mp4"
           },
           "format": {

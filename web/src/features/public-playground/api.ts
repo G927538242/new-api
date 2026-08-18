@@ -193,18 +193,18 @@ function buildVideoPayload(config: VideoPlaygroundConfig): Record<string, unknow
       payload.images = config.imageUrls
     }
   } else if (config.mode === 'video-extension') {
-    if (config.videoUrl) {
+    config.videoUrls.filter(Boolean).forEach((videoUrl) => {
       content.push({
         type: 'video_url',
-        video_url: { url: config.videoUrl },
+        video_url: { url: videoUrl },
       })
-    }
-    if (config.audioUrl) {
+    })
+    config.audioUrls.filter(Boolean).forEach((audioUrl) => {
       content.push({
         type: 'audio_url',
-        audio_url: { url: config.audioUrl },
+        audio_url: { url: audioUrl },
       })
-    }
+    })
   }
 
   if (content.length > 0) {
@@ -319,21 +319,28 @@ async function pollVideoTask(
       if (!resp.ok) continue
 
       const data = (await resp.json()) as {
-        data?: Array<{ url?: string; status?: string }>
-        status?: string
+        code?: string
+        data?: {
+          status?: string
+          progress?: string
+          result_url?: string
+          data?: { content?: { video_url?: string }; status?: string }
+        }
       }
 
-      const item = data.data?.[0]
-      const status = item?.status || data.status
+      // 后端 GET /v1/video/generations/:task_id 返回 { code, message, data: { status, result_url, data: { content: { video_url } } } }
+      const taskData = data?.data
+      const status = taskData?.status
+      const videoUrl = taskData?.result_url || taskData?.data?.content?.video_url
 
-      if (status === 'completed' && item?.url) {
+      if (status === 'SUCCESS' && videoUrl) {
         callbacks.onCompleted({
           id: taskId,
           model: config.model,
           prompt: config.prompt,
           mode: config.mode,
           status: 'completed',
-          videoUrl: item.url,
+          videoUrl,
           createdAt: Date.now(),
           resolution: config.resolution,
           ratio: config.ratio,
@@ -342,7 +349,7 @@ async function pollVideoTask(
         return
       }
 
-      if (status === 'failed' || status === 'error') {
+      if (status === 'FAILURE' || status === 'FAILED') {
         callbacks.onError('视频生成失败，请重试')
         return
       }

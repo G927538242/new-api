@@ -85,7 +85,13 @@ export function getInitialVideoConfig(): VideoPlaygroundConfig {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.VIDEO_CONFIG)
     if (!raw) return { ...DEFAULT_VIDEO_CONFIG, baseUrl: window.location.origin + '/v1' }
-    const parsed = JSON.parse(raw) as Partial<VideoPlaygroundConfig>
+    const parsed = JSON.parse(raw) as Partial<VideoPlaygroundConfig> & {
+      videoUrl?: string
+      audioUrl?: string
+    }
+    // 兼容旧版本：单视频/音频 URL 字段迁移为数组
+    const legacyVideoUrls = parsed.videoUrl ? [parsed.videoUrl] : []
+    const legacyAudioUrls = parsed.audioUrl ? [parsed.audioUrl] : []
     return {
       model: parsed.model || DEFAULT_VIDEO_CONFIG.model,
       prompt: parsed.prompt || '',
@@ -94,8 +100,8 @@ export function getInitialVideoConfig(): VideoPlaygroundConfig {
       ratio: parsed.ratio || DEFAULT_VIDEO_CONFIG.ratio,
       duration: parsed.duration ?? DEFAULT_VIDEO_CONFIG.duration,
       imageUrls: parsed.imageUrls || [],
-      videoUrl: parsed.videoUrl || '',
-      audioUrl: parsed.audioUrl || '',
+      videoUrls: parsed.videoUrls?.length ? parsed.videoUrls : legacyVideoUrls,
+      audioUrls: parsed.audioUrls?.length ? parsed.audioUrls : legacyAudioUrls,
       seed: parsed.seed ?? DEFAULT_VIDEO_CONFIG.seed,
       baseUrl: parsed.baseUrl || window.location.origin + '/v1',
       apiKey: parsed.apiKey || '',

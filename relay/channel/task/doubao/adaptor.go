@@ -313,8 +313,24 @@ func (a *TaskAdaptor) convertToRequestPayload(req *relaycommon.TaskSubmitReq) (*
 		}
 	}
 
+	// 顶层参数（resolution/ratio/duration/seed）与 metadata 均可能携带，
+	// metadata 已在上面 UnmarshalMetadata 时覆盖进 r；此处补充顶层字段。
+	// 注意 UnmarshalMetadata 使用 json.Unmarshal，会保留 r 中已由顶层设置的值。
+	if req.Resolution != "" && r.Resolution == "" {
+		r.Resolution = req.Resolution
+	}
+	if req.Ratio != "" && r.Ratio == "" {
+		r.Ratio = req.Ratio
+	}
+
 	if sec, _ := strconv.Atoi(req.Seconds); sec > 0 {
 		r.Duration = lo.ToPtr(dto.IntValue(sec))
+	} else if req.Duration > 0 {
+		r.Duration = lo.ToPtr(dto.IntValue(req.Duration))
+	}
+
+	if r.Seed == nil && req.Seed >= 0 {
+		r.Seed = lo.ToPtr(dto.IntValue(req.Seed))
 	}
 
 	// Remove any existing text items and append the prompt as the last text item

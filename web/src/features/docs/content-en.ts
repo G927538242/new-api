@@ -1752,7 +1752,7 @@ Generates videos based on text prompts. Supports both pure text-to-video and ima
 | \`doubao-seedance-2-0-260128\` | 2.0 standard |
 | \`doubao-seedance-2-0-fast-260128\` | 2.0 fast, low latency |
 | \`doubao-seedance-2-0-mini-260615\` | 2.0 Mini, lightweight and low cost |
-| \`doubao-seedance-2-5-260628\` | 2.5 latest |
+| \`doubao-seedance-2-5-260628\` | 2.5 latest, up to 30s, 21:9, multimodal refs (30 images + 10 videos + 10 audio) |
 
 ### Other Models
 
@@ -1769,9 +1769,9 @@ Generates videos based on text prompts. Supports both pure text-to-video and ima
 | \`image_url\` | string | No | Reference image URL (image-to-video mode) |
 | \`images\` | array | No | Multiple image inputs (Seedance image-to-video; mapped in order to first_frame / last_frame / reference_image) |
 | \`resolution\` | string | No | Output resolution (Seedance: 480p / 720p / 1080p / 4k) |
-| \`ratio\` | string | No | Aspect ratio (Seedance: 16:9 / 9:16 / 1:1) |
+| \`ratio\` | string | No | Aspect ratio (Seedance 2.5: 21:9 / 16:9 / 4:3 / 1:1 / 3:4 / 9:16; others: 16:9 / 9:16 / 1:1) |
 | \`size\` | string | No | Video size, e.g. 1280x720 |
-| \`duration\` | integer | No | Video duration (seconds) |
+| \`duration\` | integer | No | Video duration (seconds). Seedance 2.5: 4–30, 2.0 series: 4–15, 1.5: 4–12, 1.0: 2–12 |
 | \`n\` | integer | No | Number of videos to generate, default 1 |
 | \`metadata\` | object | No | Extended parameters; supports multimodal input (video_url / audio_url) and negative_prompt, style, watermark, etc. |
 
@@ -1779,10 +1779,11 @@ Generates videos based on text prompts. Supports both pure text-to-video and ima
 
 \`\`\`json
 {
-    "model": "doubao-seedance-2-0-260128",
-    "prompt": "宇航员漫步月球",
+    "model": "doubao-seedance-2-5-260628",
+    "prompt": "Astronaut walking on the moon",
     "resolution": "1080p",
-    "ratio": "16:9"
+    "ratio": "16:9",
+    "duration": 5
 }
 \`\`\`
 
@@ -1790,8 +1791,8 @@ Generates videos based on text prompts. Supports both pure text-to-video and ima
 
 \`\`\`json
 {
-    "model": "doubao-seedance-1-0-lite-i2v",
-    "prompt": "在首帧基础上添加烟花效果",
+    "model": "doubao-seedance-2-5-260628",
+    "prompt": "Add fireworks on top of the first frame",
     "images": [
         "https://example.com/first-frame.jpg",
         "https://example.com/last-frame.jpg"
@@ -1803,14 +1804,20 @@ Generates videos based on text prompts. Supports both pure text-to-video and ima
 
 \`\`\`json
 {
-    "model": "doubao-seedance-2-0-260128",
-    "prompt": "让视频中的人物转身看向镜头",
+    "model": "doubao-seedance-2-5-260628",
+    "prompt": "Make the person in the video turn to look at the camera",
     "metadata": {
         "content": [
             {
                 "type": "video_url",
                 "video_url": {
                     "url": "https://example.com/input.mp4"
+                }
+            },
+            {
+                "type": "audio_url",
+                "audio_url": {
+                    "url": "https://example.com/bgm.mp3"
                 }
             }
         ]
@@ -1825,38 +1832,64 @@ curl --location '{{BASE_URL}}/v1/video/generations' \\
 --header 'Authorization: Bearer <token>' \\
 --header 'Content-Type: application/json' \\
 --data '{
-    "model": "doubao-seedance-2-0-260128",
-    "prompt": "宇航员漫步月球",
+    "model": "doubao-seedance-2-5-260628",
+    "prompt": "Astronaut walking on the moon",
     "resolution": "1080p",
-    "ratio": "16:9"
+    "ratio": "16:9",
+    "duration": 5
 }'
 \`\`\`
 
 ## Response
 
-### 200 Success
+### 200 Success (Task Submitted)
 
 \`\`\`json
 {
-    "id": "video-abc123",
-    "object": "video.generation",
-    "created": 1713833628,
-    "model": "doubao-seedance-2-0-260128",
-    "data": [
-        {
-            "url": "https://cdn.example.com/video-001.mp4",
-            "status": "completed"
-        }
-    ],
-    "usage": {
-        "prompt_tokens": 20,
-        "completion_tokens": 0,
-        "total_tokens": 20
+    "id": "task_xxxxxxxx",
+    "task_id": "task_xxxxxxxx",
+    "object": "video",
+    "model": "doubao-seedance-2-5-260628",
+    "status": "queued",
+    "progress": 0,
+    "created_at": 1713833628
+}
+\`\`\`
+
+## Query Task Status
+
+> **GET** \`/v1/video/generations/{task_id}\`
+
+After submitting a task, poll this endpoint to get generation progress and the final result.
+
+### Task Status
+
+| Status | Description |
+|---|---|
+| \`QUEUED\` | Queued, waiting to start |
+| \`IN_PROGRESS\` | Generating; progress shows current progress |
+| \`SUCCESS\` | Completed; result_url is the video URL |
+| \`FAILURE\` | Failed; fail_reason indicates the cause |
+
+### Response Example (Completed)
+
+\`\`\`json
+{
+    "code": "success",
+    "message": "",
+    "data": {
+        "id": 123,
+        "task_id": "task_xxxxxxxx",
+        "status": "SUCCESS",
+        "progress": "100%",
+        "result_url": "https://example.com/video.mp4",
+        "model": "doubao-seedance-2-5-260628",
+        "fail_reason": ""
     }
 }
 \`\`\`
 
-> **Note**: Seedance 2.0 / 2.5 supports multimodal input (video + audio + images), which can be passed via \`metadata.content\`; after submitting a task, poll the task status via \`GET /v1/video/generations/{task_id}\`.`,
+> **Note**: Seedance 2.0 / 2.5 supports multimodal input (video + audio + images), which can be passed via \`metadata.content\`; Seedance 2.5 supports up to 30 images, 10 videos, and 10 audio references per task, with single-pass generation up to 30 seconds and multi-round extensions. After submitting a task, poll the task status via \`GET /v1/video/generations/{task_id}\`.`,
   },
   {
     id: 'asset-library',

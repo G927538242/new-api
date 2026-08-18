@@ -1734,7 +1734,7 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
 | \`doubao-seedance-2-0-260128\` | 2.0 Стандартная |
 | \`doubao-seedance-2-0-fast-260128\` | 2.0 Быстрая, низкая задержка |
 | \`doubao-seedance-2-0-mini-260615\` | 2.0 Mini, лёгкая и недорогая |
-| \`doubao-seedance-2-5-260628\` | 2.5 Новейшая версия |
+| \`doubao-seedance-2-5-260628\` | 2.5 Новейшая версия, до 30 с, 21:9, мультимодальные референсы (30 изображений + 10 видео + 10 аудио) |
 
 ### Другие модели
 
@@ -1751,9 +1751,9 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
 | \`image_url\` | string | Нет | URL опорного изображения (режим видео по изображению) |
 | \`images\` | array | Нет | Ввод нескольких изображений (видео по изображению Seedance, сопоставляется по порядку с first_frame / last_frame / reference_image) |
 | \`resolution\` | string | Нет | Разрешение вывода (Seedance: 480p / 720p / 1080p / 4k) |
-| \`ratio\` | string | Нет | Соотношение сторон кадра (Seedance: 16:9 / 9:16 / 1:1) |
+| \`ratio\` | string | Нет | Соотношение сторон кадра (Seedance 2.5: 21:9 / 16:9 / 4:3 / 1:1 / 3:4 / 9:16; остальные: 16:9 / 9:16 / 1:1) |
 | \`size\` | string | Нет | Размер видео, например 1280x720 |
-| \`duration\` | integer | Нет | Длительность видео (секунды) |
+| \`duration\` | integer | Нет | Длительность видео (секунды). Seedance 2.5: 4–30, серия 2.0: 4–15, 1.5: 4–12, 1.0: 2–12 |
 | \`n\` | integer | Нет | Количество генерируемых видео, по умолчанию 1 |
 | \`metadata\` | object | Нет | Расширенные параметры: поддержка мультимодального ввода (video_url / audio_url), а также negative_prompt, style, watermark и др. |
 
@@ -1761,10 +1761,11 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
 
 \`\`\`json
 {
-    "model": "doubao-seedance-2-0-260128",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "宇航员漫步月球",
     "resolution": "1080p",
-    "ratio": "16:9"
+    "ratio": "16:9",
+    "duration": 5
 }
 \`\`\`
 
@@ -1772,7 +1773,7 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
 
 \`\`\`json
 {
-    "model": "doubao-seedance-1-0-lite-i2v",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "在首帧基础上添加烟花效果",
     "images": [
         "https://example.com/first-frame.jpg",
@@ -1785,7 +1786,7 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
 
 \`\`\`json
 {
-    "model": "doubao-seedance-2-0-260128",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "让视频中的人物转身看向镜头",
     "metadata": {
         "content": [
@@ -1793,6 +1794,12 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
                 "type": "video_url",
                 "video_url": {
                     "url": "https://example.com/input.mp4"
+                }
+            },
+            {
+                "type": "audio_url",
+                "audio_url": {
+                    "url": "https://example.com/bgm.mp3"
                 }
             }
         ]
@@ -1807,38 +1814,64 @@ curl --location '{{BASE_URL}}/v1/video/generations' \\
 --header 'Authorization: Bearer <token>' \\
 --header 'Content-Type: application/json' \\
 --data '{
-    "model": "doubao-seedance-2-0-260128",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "宇航员漫步月球",
     "resolution": "1080p",
-    "ratio": "16:9"
+    "ratio": "16:9",
+    "duration": 5
 }'
 \`\`\`
 
 ## Ответ
 
-### 200 Успех
+### 200 Успех (задача отправлена)
 
 \`\`\`json
 {
-    "id": "video-abc123",
-    "object": "video.generation",
-    "created": 1713833628,
-    "model": "doubao-seedance-2-0-260128",
-    "data": [
-        {
-            "url": "https://cdn.example.com/video-001.mp4",
-            "status": "completed"
-        }
-    ],
-    "usage": {
-        "prompt_tokens": 20,
-        "completion_tokens": 0,
-        "total_tokens": 20
+    "id": "task_xxxxxxxx",
+    "task_id": "task_xxxxxxxx",
+    "object": "video",
+    "model": "doubao-seedance-2-5-260628",
+    "status": "queued",
+    "progress": 0,
+    "created_at": 1713833628
+}
+\`\`\`
+
+## Запрос статуса задачи
+
+> **GET** \`/v1/video/generations/{task_id}\`
+
+После отправки задачи опрашивайте этот эндпоинт для получения прогресса и результата.
+
+### Статус задачи
+
+| Статус | Описание |
+|---|---|
+| \`QUEUED\` | В очереди, ожидает начала генерации |
+| \`IN_PROGRESS\` | Генерация идёт; progress показывает текущий прогресс |
+| \`SUCCESS\` | Завершено; result_url — URL видео |
+| \`FAILURE\` | Ошибка; fail_reason — причина |
+
+### Пример ответа (завершено)
+
+\`\`\`json
+{
+    "code": "success",
+    "message": "",
+    "data": {
+        "id": 123,
+        "task_id": "task_xxxxxxxx",
+        "status": "SUCCESS",
+        "progress": "100%",
+        "result_url": "https://example.com/video.mp4",
+        "model": "doubao-seedance-2-5-260628",
+        "fail_reason": ""
     }
 }
 \`\`\`
 
-> **Внимание**: Seedance 2.0 / 2.5 поддерживает мультимодальный ввод (видео + аудио + изображения), передаётся через \`metadata.content\`; после отправки задачи необходимо опрашивать статус через \`GET /v1/video/generations/{task_id}\`.`,
+> **Внимание**: Seedance 2.0 / 2.5 поддерживает мультимодальный ввод (видео + аудио + изображения), передаётся через \`metadata.content\`; Seedance 2.5 поддерживает до 30 изображений, 10 видео и 10 аудио-референсов за задачу, а также генерацию до 30 секунд за один проход и многократное продление. После отправки задачи необходимо опрашивать статус через \`GET /v1/video/generations/{task_id}\`.`,
   },
   {
     id: 'asset-library',

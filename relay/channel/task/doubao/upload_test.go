@@ -50,7 +50,7 @@ func uploadRealImage(t *testing.T, owner int, mimeType string, data []byte) *mod
 	storage, err := service.GetAssetStorage()
 	require.NoError(t, err)
 	key := "image/" + uuid.NewString() + ".bin"
-	url, err := storage.Upload(context.Background(), bytes.NewReader(data), key, mimeType)
+	url, err := storage.Upload(context.Background(), bytes.NewReader(data), int64(len(data)), key, mimeType)
 	require.NoError(t, err)
 	return insertRawAsset(t, &model.Asset{
 		UserId:     owner,

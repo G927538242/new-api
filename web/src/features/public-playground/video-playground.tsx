@@ -111,11 +111,6 @@ export function VideoPlayground() {
     saveVideoTasks(tasks)
   }, [tasks])
 
-  const activeModels = useMemo(() => {
-    const group = VIDEO_MODEL_GROUPS.find((g) => g.id === activeGroup)
-    return group?.models ?? []
-  }, [activeGroup])
-
   const currentModel = useMemo(() => {
     for (const group of VIDEO_MODEL_GROUPS) {
       const found = group.models.find((m) => m.id === config.model)
@@ -149,6 +144,8 @@ export function VideoPlayground() {
         ? prev.resolution
         : model.resolutions[model.resolutions.length - 1]) as VideoResolutions
       const ratio = (model.ratios.includes(prev.ratio) ? prev.ratio : model.ratios[0]) as VideoRatio
+      const [minDur, maxDur] = model.durationRange ?? [4, 30]
+      const duration = Math.min(Math.max(prev.duration, minDur), maxDur)
 
       return {
         ...prev,
@@ -156,6 +153,7 @@ export function VideoPlayground() {
         mode: newMode,
         resolution,
         ratio,
+        duration,
       }
     })
   }, [])
@@ -169,7 +167,7 @@ export function VideoPlayground() {
       toast.error(t('Image-to-video mode requires at least one image'))
       return
     }
-    if (config.mode === 'video-extension' && !config.videoUrl) {
+    if (config.mode === 'video-extension' && !config.videoUrls.some(Boolean)) {
       toast.error(t('Video extension mode requires a video'))
       return
     }
@@ -243,9 +241,13 @@ export function VideoPlayground() {
     if (isGenerating) return false
     if (!config.prompt.trim() || !config.model.trim()) return false
     if (config.mode === 'image-to-video' && config.imageUrls.length === 0) return false
-    if (config.mode === 'video-extension' && !config.videoUrl) return false
+    if (config.mode === 'video-extension' && !config.videoUrls.some(Boolean)) return false
     return true
   }, [isGenerating, config])
+
+  const durationRange = useMemo(() => {
+    return currentModel?.durationRange ?? [4, 30]
+  }, [currentModel])
 
   const getModeLabel = (mode: string) => {
     return MODE_LABELS[mode] || mode
@@ -449,7 +451,7 @@ export function VideoPlayground() {
                       </Button>
                     </div>
                   ))}
-                  {config.imageUrls.length < 3 && (
+                  {config.imageUrls.length < (currentModel?.maxImages ?? 3) && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -466,23 +468,85 @@ export function VideoPlayground() {
 
               {config.mode === 'video-extension' && (
                 <div className="mb-3 space-y-2">
-                  <div>
+                  <div className="space-y-1.5">
                     <Label className="text-xs">{t('Video URL')}</Label>
-                    <Input
-                      value={config.videoUrl}
-                      onChange={(e) => updateConfig('videoUrl', e.target.value)}
-                      placeholder={t('Enter video URL')}
-                      className="h-7 text-xs font-mono"
-                    />
+                    {config.videoUrls.map((url, index) => (
+                      <div key={index} className="flex gap-2">
+                        <Input
+                          value={url}
+                          onChange={(e) => {
+                            const next = [...config.videoUrls]
+                            next[index] = e.target.value
+                            updateConfig('videoUrls', next)
+                          }}
+                          placeholder={`${t('Video')} ${index + 1} URL`}
+                          className="h-7 text-xs font-mono"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            updateConfig(
+                              'videoUrls',
+                              config.videoUrls.filter((_, i) => i !== index)
+                            )
+                          }
+                          className="h-7 w-7 p-0"
+                        >
+                          <X className="size-3" />
+                        </Button>
+                      </div>
+                    ))}
+                    {config.videoUrls.length < (currentModel?.maxVideos ?? 1) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => updateConfig('videoUrls', [...config.videoUrls, ''])}
+                        className="h-6 text-xs"
+                      >
+                        + {t('Add Video')}
+                      </Button>
+                    )}
                   </div>
-                  <div>
+                  <div className="space-y-1.5">
                     <Label className="text-xs">{t('Audio URL')} ({t('Optional')})</Label>
-                    <Input
-                      value={config.audioUrl}
-                      onChange={(e) => updateConfig('audioUrl', e.target.value)}
-                      placeholder={t('Enter audio URL')}
-                      className="h-7 text-xs font-mono"
-                    />
+                    {config.audioUrls.map((url, index) => (
+                      <div key={index} className="flex gap-2">
+                        <Input
+                          value={url}
+                          onChange={(e) => {
+                            const next = [...config.audioUrls]
+                            next[index] = e.target.value
+                            updateConfig('audioUrls', next)
+                          }}
+                          placeholder={`${t('Audio')} ${index + 1} URL`}
+                          className="h-7 text-xs font-mono"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            updateConfig(
+                              'audioUrls',
+                              config.audioUrls.filter((_, i) => i !== index)
+                            )
+                          }
+                          className="h-7 w-7 p-0"
+                        >
+                          <X className="size-3" />
+                        </Button>
+                      </div>
+                    ))}
+                    {config.audioUrls.length < (currentModel?.maxAudios ?? 1) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => updateConfig('audioUrls', [...config.audioUrls, ''])}
+                        className="h-6 text-xs"
+                      >
+                        + {t('Add Audio')}
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}
@@ -529,14 +593,17 @@ export function VideoPlayground() {
                     <Label className="text-xs">{t('Duration')}: {config.duration}s</Label>
                   </div>
                   <Slider
-                    min={1}
-                    max={30}
+                    min={durationRange[0]}
+                    max={durationRange[1]}
                     step={1}
                     value={[config.duration]}
                     onValueChange={(v) =>
                       updateConfig('duration', Number(Array.isArray(v) ? v[0] : v))
                     }
                   />
+                  <p className="text-[10px] text-muted-foreground">
+                    {t('Range')}: {durationRange[0]}–{durationRange[1]}s
+                  </p>
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">

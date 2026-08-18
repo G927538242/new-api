@@ -1752,7 +1752,7 @@ Génère une vidéo à partir d'une invite textuelle, prend en charge deux modes
 | \`doubao-seedance-2-0-260128\` | 2.0 Édition standard |
 | \`doubao-seedance-2-0-fast-260128\` | 2.0 Édition rapide, faible latence |
 | \`doubao-seedance-2-0-mini-260615\` | 2.0 Mini, léger et économique |
-| \`doubao-seedance-2-5-260628\` | 2.5 Dernière version |
+| \`doubao-seedance-2-5-260628\` | 2.5 Dernière version, jusqu'à 30 s, 21:9, références multimodales (30 images + 10 vidéos + 10 audio) |
 
 ### Autres modèles
 
@@ -1769,9 +1769,9 @@ Génère une vidéo à partir d'une invite textuelle, prend en charge deux modes
 | \`image_url\` | string | Non | URL de l'image de référence (mode image-à-vidéo) |
 | \`images\` | array | Non | Entrée multi-images (Seedance image-à-vidéo, mappée dans l'ordre à first_frame / last_frame / reference_image) |
 | \`resolution\` | string | Non | Résolution de sortie (Seedance : 480p / 720p / 1080p / 4k) |
-| \`ratio\` | string | Non | Format d'image (Seedance : 16:9 / 9:16 / 1:1) |
+| \`ratio\` | string | Non | Format d'image (Seedance 2.5 : 21:9 / 16:9 / 4:3 / 1:1 / 3:4 / 9:16 ; autres : 16:9 / 9:16 / 1:1) |
 | \`size\` | string | Non | Taille de la vidéo, ex. 1280x720 |
-| \`duration\` | integer | Non | Durée de la vidéo (secondes) |
+| \`duration\` | integer | Non | Durée de la vidéo (secondes). Seedance 2.5 : 4–30, série 2.0 : 4–15, 1.5 : 4–12, 1.0 : 2–12 |
 | \`n\` | integer | Non | Nombre de vidéos, défaut 1 |
 | \`metadata\` | object | Non | Paramètres étendus, prend en charge l'entrée multimodale (video_url / audio_url) ainsi que negative_prompt, style, watermark, etc. |
 
@@ -1779,10 +1779,11 @@ Génère une vidéo à partir d'une invite textuelle, prend en charge deux modes
 
 \`\`\`json
 {
-    "model": "doubao-seedance-2-0-260128",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "宇航员漫步月球",
     "resolution": "1080p",
-    "ratio": "16:9"
+    "ratio": "16:9",
+    "duration": 5
 }
 \`\`\`
 
@@ -1790,7 +1791,7 @@ Génère une vidéo à partir d'une invite textuelle, prend en charge deux modes
 
 \`\`\`json
 {
-    "model": "doubao-seedance-1-0-lite-i2v",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "在首帧基础上添加烟花效果",
     "images": [
         "https://example.com/first-frame.jpg",
@@ -1803,7 +1804,7 @@ Génère une vidéo à partir d'une invite textuelle, prend en charge deux modes
 
 \`\`\`json
 {
-    "model": "doubao-seedance-2-0-260128",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "让视频中的人物转身看向镜头",
     "metadata": {
         "content": [
@@ -1811,6 +1812,12 @@ Génère une vidéo à partir d'une invite textuelle, prend en charge deux modes
                 "type": "video_url",
                 "video_url": {
                     "url": "https://example.com/input.mp4"
+                }
+            },
+            {
+                "type": "audio_url",
+                "audio_url": {
+                    "url": "https://example.com/bgm.mp3"
                 }
             }
         ]
@@ -1825,38 +1832,64 @@ curl --location '{{BASE_URL}}/v1/video/generations' \\
 --header 'Authorization: Bearer <token>' \\
 --header 'Content-Type: application/json' \\
 --data '{
-    "model": "doubao-seedance-2-0-260128",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "宇航员漫步月球",
     "resolution": "1080p",
-    "ratio": "16:9"
+    "ratio": "16:9",
+    "duration": 5
 }'
 \`\`\`
 
 ## Réponse
 
-### 200 Succès
+### 200 Succès (tâche soumise)
 
 \`\`\`json
 {
-    "id": "video-abc123",
-    "object": "video.generation",
-    "created": 1713833628,
-    "model": "doubao-seedance-2-0-260128",
-    "data": [
-        {
-            "url": "https://cdn.example.com/video-001.mp4",
-            "status": "completed"
-        }
-    ],
-    "usage": {
-        "prompt_tokens": 20,
-        "completion_tokens": 0,
-        "total_tokens": 20
+    "id": "task_xxxxxxxx",
+    "task_id": "task_xxxxxxxx",
+    "object": "video",
+    "model": "doubao-seedance-2-5-260628",
+    "status": "queued",
+    "progress": 0,
+    "created_at": 1713833628
+}
+\`\`\`
+
+## Interroger l'état de la tâche
+
+> **GET** \`/v1/video/generations/{task_id}\`
+
+Après la soumission de la tâche, interrogez cet endpoint pour obtenir la progression et le résultat.
+
+### État de la tâche
+
+| Statut | Description |
+|---|---|
+| \`QUEUED\` | En file d'attente, en attente de génération |
+| \`IN_PROGRESS\` | Génération en cours ; progress indique la progression |
+| \`SUCCESS\` | Terminé ; result_url est l'URL de la vidéo |
+| \`FAILURE\` | Échec ; fail_reason indique la cause |
+
+### Exemple de réponse (terminé)
+
+\`\`\`json
+{
+    "code": "success",
+    "message": "",
+    "data": {
+        "id": 123,
+        "task_id": "task_xxxxxxxx",
+        "status": "SUCCESS",
+        "progress": "100%",
+        "result_url": "https://example.com/video.mp4",
+        "model": "doubao-seedance-2-5-260628",
+        "fail_reason": ""
     }
 }
 \`\`\`
 
-> **Remarque** : Seedance 2.0 / 2.5 prend en charge les entrées multimodales (vidéo + audio + image), qui peuvent être transmises via \`metadata.content\` ; après soumission de la tâche, interrogez l'état de la tâche via \`GET /v1/video/generations/{task_id}\`.`,
+> **Remarque** : Seedance 2.0 / 2.5 prend en charge les entrées multimodales (vidéo + audio + image), qui peuvent être transmises via \`metadata.content\` ; Seedance 2.5 prend en charge jusqu'à 30 images, 10 vidéos et 10 fichiers audio en référence par tâche, avec une génération en un seul passage jusqu'à 30 secondes et des extensions multi-tours. Après soumission de la tâche, interrogez l'état de la tâche via \`GET /v1/video/generations/{task_id}\`.`,
   },
   {
     id: "asset-library",

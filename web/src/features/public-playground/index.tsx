@@ -89,6 +89,11 @@ function ChatPanel() {
   const abortRef = useRef<AbortController | null>(null)
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const msgLoadedRef = useRef(false)
+  const messagesRef = useRef<ChatMessage[]>([])
+
+  useEffect(() => {
+    messagesRef.current = messages
+  }, [messages])
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -110,8 +115,13 @@ function ChatPanel() {
   }, [messages])
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    if (!scrollRef.current) return
+    // scrollRef 指向 ScrollArea 的 Root 容器，实际可滚动的是内部的 viewport
+    const viewport = scrollRef.current.querySelector(
+      '[data-slot="scroll-area-viewport"]'
+    )
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight
     }
   }, [messages])
 
@@ -161,12 +171,7 @@ function ChatPanel() {
       const controller = new AbortController()
       abortRef.current = controller
 
-      const sendList: ChatMessage[] = []
-      setMessages((prev) => {
-        const base = prev.slice(0, -1)
-        sendList.push(...base)
-        return prev
-      })
+      const sendList = [...messagesRef.current, userMsg]
 
       void sendStreamingChat(
         sendList,

@@ -20,7 +20,6 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Activity,
-  Clock,
   Copy,
   Check,
   User,
@@ -42,7 +41,6 @@ import { formatTimestampToDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 import type { TaskLog } from '../../types'
-import { TASK_ACTIONS, TASK_STATUS } from '../../constants'
 import { taskActionMapper, taskStatusMapper } from '../../lib/mappers'
 
 interface TaskDetailsDialogProps {

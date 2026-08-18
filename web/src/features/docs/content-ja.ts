@@ -1752,7 +1752,7 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
 | \`doubao-seedance-2-0-260128\` | 2.0 標準版 |
 | \`doubao-seedance-2-0-fast-260128\` | 2.0 高速版、低レイテンシー |
 | \`doubao-seedance-2-0-mini-260615\` | 2.0 Mini、軽量・低コスト |
-| \`doubao-seedance-2-5-260628\` | 2.5 最新版 |
+| \`doubao-seedance-2-5-260628\` | 2.5 最新版、最長 30 秒、21:9 対応、マルチモーダル参照（画像 30 + 動画 10 + 音声 10） |
 
 ### その他のモデル
 
@@ -1769,9 +1769,9 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
 | \`image_url\` | string | いいえ | 参考画像 URL（画像から動画モード） |
 | \`images\` | array | いいえ | 複数画像入力（Seedance 画像から動画、順番に first_frame / last_frame / reference_image へマッピング） |
 | \`resolution\` | string | いいえ | 出力解像度（Seedance：480p / 720p / 1080p / 4k） |
-| \`ratio\` | string | いいえ | 画面比率（Seedance：16:9 / 9:16 / 1:1） |
+| \`ratio\` | string | いいえ | 画面比率（Seedance 2.5：21:9 / 16:9 / 4:3 / 1:1 / 3:4 / 9:16；それ以外：16:9 / 9:16 / 1:1） |
 | \`size\` | string | いいえ | 動画サイズ、例 1280x720 |
-| \`duration\` | integer | いいえ | 動画の長さ（秒） |
+| \`duration\` | integer | いいえ | 動画の長さ（秒）。Seedance 2.5：4–30、2.0 シリーズ：4–15、1.5：4–12、1.0：2–12 |
 | \`n\` | integer | いいえ | 生成数、デフォルト 1 |
 | \`metadata\` | object | いいえ | 拡張パラメータ、マルチモーダル入力（video_url / audio_url）および negative_prompt、style、watermark などに対応 |
 
@@ -1779,10 +1779,11 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
 
 \`\`\`json
 {
-    "model": "doubao-seedance-2-0-260128",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "宇航员漫步月球",
     "resolution": "1080p",
-    "ratio": "16:9"
+    "ratio": "16:9",
+    "duration": 5
 }
 \`\`\`
 
@@ -1790,7 +1791,7 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
 
 \`\`\`json
 {
-    "model": "doubao-seedance-1-0-lite-i2v",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "在首帧基础上添加烟花效果",
     "images": [
         "https://example.com/first-frame.jpg",
@@ -1803,7 +1804,7 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
 
 \`\`\`json
 {
-    "model": "doubao-seedance-2-0-260128",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "让视频中的人物转身看向镜头",
     "metadata": {
         "content": [
@@ -1811,6 +1812,12 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
                 "type": "video_url",
                 "video_url": {
                     "url": "https://example.com/input.mp4"
+                }
+            },
+            {
+                "type": "audio_url",
+                "audio_url": {
+                    "url": "https://example.com/bgm.mp3"
                 }
             }
         ]
@@ -1825,38 +1832,64 @@ curl --location '{{BASE_URL}}/v1/video/generations' \\
 --header 'Authorization: Bearer <token>' \\
 --header 'Content-Type: application/json' \\
 --data '{
-    "model": "doubao-seedance-2-0-260128",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "宇航员漫步月球",
     "resolution": "1080p",
-    "ratio": "16:9"
+    "ratio": "16:9",
+    "duration": 5
 }'
 \`\`\`
 
 ## レスポンス
 
-### 200 成功
+### 200 成功（タスク送信済み）
 
 \`\`\`json
 {
-    "id": "video-abc123",
-    "object": "video.generation",
-    "created": 1713833628,
-    "model": "doubao-seedance-2-0-260128",
-    "data": [
-        {
-            "url": "https://cdn.example.com/video-001.mp4",
-            "status": "completed"
-        }
-    ],
-    "usage": {
-        "prompt_tokens": 20,
-        "completion_tokens": 0,
-        "total_tokens": 20
+    "id": "task_xxxxxxxx",
+    "task_id": "task_xxxxxxxx",
+    "object": "video",
+    "model": "doubao-seedance-2-5-260628",
+    "status": "queued",
+    "progress": 0,
+    "created_at": 1713833628
+}
+\`\`\`
+
+## タスク状態の照会
+
+> **GET** \`/v1/video/generations/{task_id}\`
+
+タスク送信後、このエンドポイントをポーリングして生成の進捗と結果を取得します。
+
+### タスク状態
+
+| 状態 | 説明 |
+|---|---|
+| \`QUEUED\` | キュー待ち、生成待ち |
+| \`IN_PROGRESS\` | 生成中、progress が現在の進捗 |
+| \`SUCCESS\` | 完了、result_url が動画 URL |
+| \`FAILURE\` | 失敗、fail_reason が失敗理由 |
+
+### レスポンス例（完了）
+
+\`\`\`json
+{
+    "code": "success",
+    "message": "",
+    "data": {
+        "id": 123,
+        "task_id": "task_xxxxxxxx",
+        "status": "SUCCESS",
+        "progress": "100%",
+        "result_url": "https://example.com/video.mp4",
+        "model": "doubao-seedance-2-5-260628",
+        "fail_reason": ""
     }
 }
 \`\`\`
 
-> **注意**：Seedance 2.0 / 2.5 はマルチモーダル入力（動画 + 音声 + 画像）に対応しており、\`metadata.content\` で渡せます。タスク送信後は \`GET /v1/video/generations/{task_id}\` でタスクの状態をポーリングする必要があります。`,
+> **注意**：Seedance 2.0 / 2.5 はマルチモーダル入力（動画 + 音声 + 画像）に対応しており、\`metadata.content\` で渡せます。2.5 ではタスクあたり最大 30 枚の画像、10 本の動画、10 件の音声を参照でき、最大 30 秒の一括生成と複数回の延長に対応しています。タスク送信後は \`GET /v1/video/generations/{task_id}\` でタスクの状態をポーリングする必要があります。`,
   },
   {
     id: 'asset-library',

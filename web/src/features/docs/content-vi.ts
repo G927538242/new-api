@@ -1752,7 +1752,7 @@ Tạo video theo gợi ý văn bản, hỗ trợ hai chế độ thuần văn b�
 | \`doubao-seedance-2-0-260128\` | 2.0 phiên bản tiêu chuẩn |
 | \`doubao-seedance-2-0-fast-260128\` | 2.0 phiên bản nhanh, độ trễ thấp |
 | \`doubao-seedance-2-0-mini-260615\` | 2.0 Mini, nhẹ và chi phí thấp |
-| \`doubao-seedance-2-5-260628\` | 2.5 phiên bản mới nhất |
+| \`doubao-seedance-2-5-260628\` | 2.5 phiên bản mới nhất, tối đa 30 giây, 21:9, tham chiếu đa phương thức (30 ảnh + 10 video + 10 âm thanh) |
 
 ### Mô hình khác
 
@@ -1769,9 +1769,9 @@ Tạo video theo gợi ý văn bản, hỗ trợ hai chế độ thuần văn b�
 | \`image_url\` | string | Không | URL hình ảnh tham chiếu (chế độ hình ảnh thành video) |
 | \`images\` | array | Không | Đầu vào nhiều ảnh (Seedance hình ảnh thành video, ánh xạ theo thứ tự first_frame / last_frame / reference_image) |
 | \`resolution\` | string | Không | Độ phân giải đầu ra (Seedance: 480p / 720p / 1080p / 4k) |
-| \`ratio\` | string | Không | Tỷ lệ khung hình (Seedance: 16:9 / 9:16 / 1:1) |
+| \`ratio\` | string | Không | Tỷ lệ khung hình (Seedance 2.5: 21:9 / 16:9 / 4:3 / 1:1 / 3:4 / 9:16; còn lại: 16:9 / 9:16 / 1:1) |
 | \`size\` | string | Không | Kích thước video, ví dụ 1280x720 |
-| \`duration\` | integer | Không | Thời lượng video (giây) |
+| \`duration\` | integer | Không | Thời lượng video (giây). Seedance 2.5: 4–30, dòng 2.0: 4–15, 1.5: 4–12, 1.0: 2–12 |
 | \`n\` | integer | Không | Số lượng tạo, mặc định 1 |
 | \`metadata\` | object | Không | Tham số mở rộng, hỗ trợ đầu vào đa phương thức (video_url / audio_url) và negative_prompt、style、watermark... |
 
@@ -1779,10 +1779,11 @@ Tạo video theo gợi ý văn bản, hỗ trợ hai chế độ thuần văn b�
 
 \`\`\`json
 {
-    "model": "doubao-seedance-2-0-260128",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "宇航员漫步月球",
     "resolution": "1080p",
-    "ratio": "16:9"
+    "ratio": "16:9",
+    "duration": 5
 }
 \`\`\`
 
@@ -1790,7 +1791,7 @@ Tạo video theo gợi ý văn bản, hỗ trợ hai chế độ thuần văn b�
 
 \`\`\`json
 {
-    "model": "doubao-seedance-1-0-lite-i2v",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "在首帧基础上添加烟花效果",
     "images": [
         "https://example.com/first-frame.jpg",
@@ -1803,7 +1804,7 @@ Tạo video theo gợi ý văn bản, hỗ trợ hai chế độ thuần văn b�
 
 \`\`\`json
 {
-    "model": "doubao-seedance-2-0-260128",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "让视频中的人物转身看向镜头",
     "metadata": {
         "content": [
@@ -1811,6 +1812,12 @@ Tạo video theo gợi ý văn bản, hỗ trợ hai chế độ thuần văn b�
                 "type": "video_url",
                 "video_url": {
                     "url": "https://example.com/input.mp4"
+                }
+            },
+            {
+                "type": "audio_url",
+                "audio_url": {
+                    "url": "https://example.com/bgm.mp3"
                 }
             }
         ]
@@ -1825,38 +1832,64 @@ curl --location '{{BASE_URL}}/v1/video/generations' \\
 --header 'Authorization: Bearer <token>' \\
 --header 'Content-Type: application/json' \\
 --data '{
-    "model": "doubao-seedance-2-0-260128",
+    "model": "doubao-seedance-2-5-260628",
     "prompt": "宇航员漫步月球",
     "resolution": "1080p",
-    "ratio": "16:9"
+    "ratio": "16:9",
+    "duration": 5
 }'
 \`\`\`
 
 ## Phản hồi trả về
 
-### 200 Thành công
+### 200 Thành công (đã gửi tác vụ)
 
 \`\`\`json
 {
-    "id": "video-abc123",
-    "object": "video.generation",
-    "created": 1713833628,
-    "model": "doubao-seedance-2-0-260128",
-    "data": [
-        {
-            "url": "https://cdn.example.com/video-001.mp4",
-            "status": "completed"
-        }
-    ],
-    "usage": {
-        "prompt_tokens": 20,
-        "completion_tokens": 0,
-        "total_tokens": 20
+    "id": "task_xxxxxxxx",
+    "task_id": "task_xxxxxxxx",
+    "object": "video",
+    "model": "doubao-seedance-2-5-260628",
+    "status": "queued",
+    "progress": 0,
+    "created_at": 1713833628
+}
+\`\`\`
+
+## Truy vấn trạng thái tác vụ
+
+> **GET** \`/v1/video/generations/{task_id}\`
+
+Sau khi gửi tác vụ, thăm dò endpoint này để lấy tiến độ và kết quả.
+
+### Trạng thái tác vụ
+
+| Trạng thái | Ghi chú |
+|---|---|
+| \`QUEUED\` | Đang xếp hàng, chờ bắt đầu tạo |
+| \`IN_PROGRESS\` | Đang tạo; progress là tiến độ hiện tại |
+| \`SUCCESS\` | Hoàn thành; result_url là địa chỉ video |
+| \`FAILURE\` | Thất bại; fail_reason là lý do |
+
+### Ví dụ phản hồi (hoàn thành)
+
+\`\`\`json
+{
+    "code": "success",
+    "message": "",
+    "data": {
+        "id": 123,
+        "task_id": "task_xxxxxxxx",
+        "status": "SUCCESS",
+        "progress": "100%",
+        "result_url": "https://example.com/video.mp4",
+        "model": "doubao-seedance-2-5-260628",
+        "fail_reason": ""
     }
 }
 \`\`\`
 
-> **Lưu ý**: Seedance 2.0 / 2.5 hỗ trợ đầu vào đa phương thức (video + âm thanh + hình ảnh), có thể truyền qua \`metadata.content\`; sau khi gửi tác vụ cần thăm dò trạng thái tác vụ qua \`GET /v1/video/generations/{task_id}\`.`,
+> **Lưu ý**: Seedance 2.0 / 2.5 hỗ trợ đầu vào đa phương thức (video + âm thanh + hình ảnh), có thể truyền qua \`metadata.content\`; Seedance 2.5 hỗ trợ tối đa 30 ảnh, 10 video và 10 âm thanh tham chiếu cho mỗi tác vụ, cùng với khả năng tạo tối đa 30 giây trong một lần và kéo dài nhiều vòng. Sau khi gửi tác vụ cần thăm dò trạng thái tác vụ qua \`GET /v1/video/generations/{task_id}\`.`,
   },
   {
     id: 'asset-library',

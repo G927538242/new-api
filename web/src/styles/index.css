@@ -979,6 +979,8 @@ For commercial licensing, please contact support@quantumnous.com
 
   .home-pulse-dot {
     animation: home-pulse-dot 2s ease-in-out infinite;
+  }
+}
 
 /* ── Auto group flowing border ── */
 @property --auto-group-flow-angle {
