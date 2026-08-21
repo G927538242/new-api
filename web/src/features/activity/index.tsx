@@ -27,62 +27,61 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  AnthropicIcon,
+  AlibabaIcon,
   ByteDanceIcon,
   DeepSeekIcon,
-  GeminiIcon,
-  MinimaxIcon,
-  OpenAIIcon,
+  MoonshotIcon,
+  ZhipuIcon,
 } from '@/features/home/components/sections/provider-icons'
 
 const recommendedModels = [
   {
-    name: 'GPT-4o',
-    provider: 'OpenAI',
-    description: '多模态能力最强的模型，支持文本、图像和音频处理',
-    tags: ['多模态', '推理', '通用'],
+    name: 'Seedance 2.5',
+    provider: '豆包 · 字节跳动',
+    description: '最新一代视频生成模型，支持 4-30 秒高清视频生成，画面质量与一致性业界领先',
+    tags: ['视频生成', '高清', '多比例'],
     highlight: true,
-    Icon: OpenAIIcon,
-  },
-  {
-    name: 'Claude 3.5 Sonnet',
-    provider: 'Claude',
-    description: '高性价比推理模型，在长上下文和代码生成方面表现优异',
-    tags: ['推理', '代码', '长上下文'],
-    highlight: true,
-    Icon: AnthropicIcon,
-  },
-  {
-    name: 'Gemini 2.0 Pro',
-    provider: 'Gemini',
-    description: '谷歌最新一代多模态模型，支持实时流式输出',
-    tags: ['多模态', '流式', '实时'],
-    highlight: false,
-    Icon: GeminiIcon,
-  },
-  {
-    name: 'DeepSeek V3',
-    provider: 'DeepSeek',
-    description: '国产大模型，中文能力突出，性价比极高',
-    tags: ['中文', '性价比', '开源'],
-    highlight: true,
-    Icon: DeepSeekIcon,
-  },
-  {
-    name: 'Kimi K2',
-    provider: 'Moonshot',
-    description: '超长上下文窗口，适合企业级文档处理',
-    tags: ['长上下文', '企业', '文档'],
-    highlight: false,
-    Icon: MinimaxIcon,
-  },
-  {
-    name: 'Qwen3',
-    provider: 'Alibaba',
-    description: '阿里巴巴通义系列，中文理解与生成能力业界领先',
-    tags: ['中文', '企业', 'RAG'],
-    highlight: false,
     Icon: ByteDanceIcon,
+  },
+  {
+    name: 'Seedance 2.0',
+    provider: '豆包 · 字节跳动',
+    description: '成熟稳定的视频生成模型，支持多种镜头语言和风格，适合创意视频批量生产',
+    tags: ['视频生成', '创意', '稳定'],
+    highlight: true,
+    Icon: ByteDanceIcon,
+  },
+  {
+    name: 'GLM 5.2',
+    provider: '智谱 AI',
+    description: '国产顶级对话模型，中文理解与推理能力突出，支持长上下文和多模态处理',
+    tags: ['对话', '推理', '中文'],
+    highlight: true,
+    Icon: ZhipuIcon,
+  },
+  {
+    name: 'Kimi K3',
+    provider: 'Moonshot AI',
+    description: '超长上下文窗口，企业级文档处理首选，支持百万级 Token 精准理解',
+    tags: ['长上下文', '企业', '文档'],
+    highlight: true,
+    Icon: MoonshotIcon,
+  },
+  {
+    name: 'qwen-image2',
+    provider: '通义 · 阿里巴巴',
+    description: '新一代图像生成模型，支持高清图像生成与编辑，创意设计与视觉内容生产利器',
+    tags: ['图像生成', '高清', '创意设计'],
+    highlight: true,
+    Icon: AlibabaIcon,
+  },
+  {
+    name: 'DeepSeek V4',
+    provider: '深度求索',
+    description: '新一代国产推理模型，中文能力业界领先，支持长上下文与多模态，性价比极高',
+    tags: ['中文', '推理', '开源'],
+    highlight: false,
+    Icon: DeepSeekIcon,
   },
 ]
 
@@ -106,10 +105,32 @@ export function ActivityCenter() {
     requirements: '',
   })
   const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (submitting) return
+    setSubmitting(true)
+    try {
+      const payload = {
+        company_name: formData.companyName,
+        contact_name: formData.contactName,
+        contact_phone: formData.phone,
+        contact_email: formData.contactEmail,
+        license_number: formData.website,
+        business_scope: formData.businessType,
+        remark: formData.requirements,
+      }
+      await fetch('/api/enterprise-cert/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+    } catch {
+      // 即使通知失败也显示提交成功，不阻塞用户
+    }
     setSubmitted(true)
+    setSubmitting(false)
   }
 
   const updateField = (field: string, value: string) => {
@@ -233,10 +254,10 @@ export function ActivityCenter() {
                 </span>
               </div>
               <h2 className='text-2xl font-semibold tracking-tight'>
-                主流模型推荐
+                主推模型推荐
               </h2>
               <p className='mt-2 text-sm text-muted-foreground'>
-                精选当前最受欢迎的 AI 模型，涵盖文本、多模态、代码等场景
+                精选国内顶级 AI 模型，涵盖视频生成、对话推理等核心场景
               </p>
             </div>
             <Button
@@ -547,9 +568,10 @@ export function ActivityCenter() {
                       </p>
                       <Button
                         type='submit'
-                        className='h-9 rounded-md bg-foreground px-5 text-sm font-medium text-background hover:bg-foreground/90'
+                        disabled={submitting}
+                        className='h-9 rounded-md bg-foreground px-5 text-sm font-medium text-background hover:bg-foreground/90 disabled:opacity-60'
                       >
-                        提交申请
+                        {submitting ? '提交中...' : '提交申请'}
                       </Button>
                     </div>
                   </form>
