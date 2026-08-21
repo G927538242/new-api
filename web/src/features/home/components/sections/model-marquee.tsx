@@ -27,17 +27,26 @@ export function ModelMarquee(_props: ModelMarqueeProps) {
   const groups = [0, 1]
 
   return (
-    <section className='relative py-24 md:py-32'>
+    <section className='relative border-y border-border/60 bg-muted/25 py-16 md:py-20'>
       <div className='mx-auto max-w-[1200px] px-6'>
-        <div className='home-reveal-up mb-8 flex items-center justify-between gap-4' style={{ animationDelay: '0ms' }}>
-          <div className="flex items-center gap-4">
-            <span className="text-[12px] font-semibold tracking-wide text-muted-foreground">
-              Providers
-            </span>
-            <span className="h-px w-8 bg-border" />
+        <div
+          className='home-reveal-up mb-10 flex flex-col items-start gap-3 md:flex-row md:items-end md:justify-between'
+          style={{ animationDelay: '0ms' }}
+        >
+          <div>
+            <h2 className='text-[24px] font-semibold tracking-tight text-foreground'>
+              {t('home.marquee.title')}
+            </h2>
+            <p className='mt-2 text-[13.5px] text-muted-foreground'>
+              {t('home.stats.providers')} · {t('home.stats.models')}
+            </p>
           </div>
-          <span className='hidden text-[13px] text-muted-foreground md:block'>
-            {t('home.marquee.title')}
+          <span className='inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-[11px] font-medium tracking-wide text-muted-foreground'>
+            <span className='relative flex size-1.5'>
+              <span className='home-pulse-dot absolute inline-flex size-full rounded-full bg-emerald-500/60' />
+              <span className='relative inline-flex size-1.5 rounded-full bg-emerald-500' />
+            </span>
+            Live
           </span>
         </div>
       </div>

@@ -101,10 +101,10 @@ function DocsSidebar(props: {
   className?: string
 }) {
   return (
-    <nav className={cn('space-y-6', props.className)}>
+    <nav className={cn('space-y-7', props.className)}>
       {props.docCategories.map((category) => (
         <div key={category}>
-          <h3 className='text-muted-foreground/60 mb-2 px-3 text-xs font-semibold tracking-wider uppercase'>
+          <h3 className='text-foreground/40 mb-2.5 px-2 text-[11px] font-semibold tracking-widest uppercase'>
             {category}
           </h3>
           <ul className='space-y-0.5'>
@@ -115,12 +115,15 @@ function DocsSidebar(props: {
                   <button
                     onClick={() => props.onSelect(page.id)}
                     className={cn(
-                      'w-full rounded-md px-3 py-1.5 text-left text-sm transition-colors',
+                      'group relative w-full rounded-md px-2 py-[7px] text-left text-[13px] leading-snug transition-colors',
                       props.currentPageId === page.id
-                        ? 'bg-primary/10 text-primary font-medium'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                        ? 'bg-primary/8 font-medium text-primary'
+                        : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                     )}
                   >
+                    {props.currentPageId === page.id && (
+                      <span className='bg-primary absolute top-1/2 left-0 h-4 w-0.5 -translate-y-1/2 rounded-full' />
+                    )}
                     {page.title}
                   </button>
                 </li>
@@ -145,7 +148,7 @@ function DocsToc(props: {
 
   return (
     <nav className='space-y-4'>
-      <div className='text-muted-foreground/60 text-xs font-semibold tracking-wider uppercase'>
+      <div className='text-foreground/40 text-[11px] font-semibold tracking-widest uppercase'>
         本篇目录
       </div>
       <ul className='space-y-0.5 border-l'>
@@ -154,11 +157,11 @@ function DocsToc(props: {
             <button
               onClick={() => onSelect(anchor.id)}
               className={cn(
-                '-ml-px block w-full border-l py-1 text-left text-[13px] leading-snug transition-colors',
+                '-ml-px block w-full border-l py-[3px] text-left text-[12.5px] leading-snug transition-colors',
                 anchor.level === 3 ? 'pl-6' : 'pl-4',
                 activeId === anchor.id
-                  ? 'border-primary text-primary font-medium'
-                  : 'border-transparent text-muted-foreground hover:border-muted-foreground/40 hover:text-foreground'
+                  ? 'border-primary font-medium text-primary'
+                  : 'border-border text-muted-foreground hover:border-foreground/30 hover:text-foreground'
               )}
             >
               {anchor.text}
@@ -261,10 +264,28 @@ export function Docs() {
 
   return (
     <PublicLayout showMainContainer={false}>
-      <div className='bg-gradient-to-b from-sky-100/70 via-white/30 to-transparent dark:from-sky-950/30 dark:via-slate-950/10 dark:to-transparent'>
-      <div className='mx-auto flex max-w-[1400px] gap-0 px-0 pt-16 md:pt-20'>
+      <div className='min-h-screen bg-background'>
+      {/* 顶部文档标题栏 */}
+      <div className='border-border/70 sticky top-16 z-30 border-b bg-background/85 backdrop-blur-md'>
+        <div className='mx-auto flex h-12 max-w-[1400px] items-center justify-between px-4 md:px-6'>
+          <div className='flex items-center gap-2.5'>
+            <span className='text-foreground text-sm font-semibold tracking-tight'>
+              文档中心
+            </span>
+            <span className='text-foreground/30 text-xs'>/</span>
+            <span className='text-muted-foreground text-[13px]'>
+              {currentPage?.category}
+            </span>
+          </div>
+          <span className='hidden text-muted-foreground/60 text-xs sm:block'>
+            {currentPage?.title}
+          </span>
+        </div>
+      </div>
+
+      <div className='mx-auto flex max-w-[1400px] gap-0 px-0 pt-0'>
         {/* Desktop sidebar */}
-        <aside className='sticky top-20 hidden h-[calc(100vh-5rem)] w-64 shrink-0 overflow-y-auto border-r px-4 py-8 md:block'>
+        <aside className='sticky top-28 hidden h-[calc(100vh-7rem)] w-60 shrink-0 overflow-y-auto border-r border-border/60 px-3 py-7 lg:block'>
           <DocsSidebar
             currentPageId={currentPageId}
             onSelect={selectPage}
@@ -274,12 +295,12 @@ export function Docs() {
         </aside>
 
         {/* Mobile sidebar toggle */}
-        <div className='fixed left-4 top-20 z-30 md:hidden'>
+        <div className='fixed left-4 top-20 z-30 lg:hidden'>
           <Button
             variant='outline'
             size='icon'
             onClick={() => setMobileSidebarOpen(true)}
-            className='shadow-md'
+            className='shadow-sm'
           >
             <Menu className='size-4' />
           </Button>
@@ -287,7 +308,7 @@ export function Docs() {
 
         {/* Mobile sidebar overlay */}
         {mobileSidebarOpen && (
-          <div className='fixed inset-0 z-50 md:hidden'>
+          <div className='fixed inset-0 z-50 lg:hidden'>
             <div
               className='bg-background/80 absolute inset-0 backdrop-blur-sm'
               onClick={() => setMobileSidebarOpen(false)}
@@ -314,13 +335,15 @@ export function Docs() {
         )}
 
         {/* Main content */}
-        <main className='min-w-0 flex-1 px-4 py-8 md:px-10 md:py-8'>
+        <main className='min-w-0 flex-1 px-4 py-10 md:px-10 md:py-12'>
           <div className='mx-auto max-w-3xl'>
             {/* Breadcrumb */}
-            <nav className='text-muted-foreground/60 mb-8 flex items-center gap-2 text-xs'>
+            <nav className='text-muted-foreground/50 mb-8 flex items-center gap-1.5 text-xs'>
               <span>{currentPage?.category}</span>
               <ChevronRight className='size-3' />
-              <span className='text-foreground/80'>{currentPage?.title}</span>
+              <span className='text-foreground/80 font-medium'>
+                {currentPage?.title}
+              </span>
             </nav>
 
             {/* Content */}
@@ -329,21 +352,19 @@ export function Docs() {
             </article>
 
             {/* Prev / Next navigation */}
-            <div className='mt-12 flex items-center justify-between gap-4 border-t pt-6'>
+            <div className='mt-14 grid grid-cols-2 gap-3 border-t border-border/60 pt-8'>
               {prevPage ? (
                 <button
                   onClick={() => selectPage(prevPage.id)}
-                  className='group flex items-center gap-2 rounded-lg border px-4 py-2 text-sm transition-colors hover:bg-muted/50'
+                  className='group flex flex-col gap-1 rounded-lg border border-border/70 px-4 py-3 text-left transition-all hover:border-primary/40 hover:bg-primary/[0.03]'
                 >
-                  <ChevronLeft className='text-muted-foreground group-hover:text-foreground size-4 shrink-0' />
-                  <div className='text-left'>
-                    <div className='text-muted-foreground/60 text-xs'>
-                      上一篇
-                    </div>
-                    <div className='text-foreground/80 text-sm font-medium'>
-                      {prevPage.title}
-                    </div>
-                  </div>
+                  <span className='text-muted-foreground/60 text-[11px]'>
+                    <ChevronLeft className='mr-1 inline size-3' />
+                    上一篇
+                  </span>
+                  <span className='text-foreground/90 line-clamp-1 text-[13px] font-medium'>
+                    {prevPage.title}
+                  </span>
                 </button>
               ) : (
                 <div />
@@ -351,17 +372,15 @@ export function Docs() {
               {nextPage ? (
                 <button
                   onClick={() => selectPage(nextPage.id)}
-                  className='group flex items-center gap-2 rounded-lg border px-4 py-2 text-sm transition-colors hover:bg-muted/50'
+                  className='group flex flex-col items-end gap-1 rounded-lg border border-border/70 px-4 py-3 text-right transition-all hover:border-primary/40 hover:bg-primary/[0.03]'
                 >
-                  <div className='text-right'>
-                    <div className='text-muted-foreground/60 text-xs'>
-                      下一篇
-                    </div>
-                    <div className='text-foreground/80 text-sm font-medium'>
-                      {nextPage.title}
-                    </div>
-                  </div>
-                  <ChevronRight className='text-muted-foreground group-hover:text-foreground size-4 shrink-0' />
+                  <span className='text-muted-foreground/60 text-[11px]'>
+                    下一篇
+                    <ChevronRight className='ml-1 inline size-3' />
+                  </span>
+                  <span className='text-foreground/90 line-clamp-1 text-[13px] font-medium'>
+                    {nextPage.title}
+                  </span>
                 </button>
               ) : (
                 <div />
@@ -371,7 +390,7 @@ export function Docs() {
         </main>
 
         {/* Right TOC (on-page directory) */}
-        <aside className='sticky top-20 hidden h-[calc(100vh-5rem)] w-60 shrink-0 overflow-y-auto px-6 py-8 lg:block'>
+        <aside className='sticky top-28 hidden h-[calc(100vh-7rem)] w-56 shrink-0 overflow-y-auto px-4 py-7 xl:block'>
           <DocsToc
             anchors={toc}
             activeId={activeHeadingId}

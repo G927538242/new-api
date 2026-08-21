@@ -118,27 +118,43 @@ export function PricingTable(_props: PricingTableProps) {
   }
 
   return (
-    <section className='relative py-32 md:py-40'>
+    <section className='relative py-28 md:py-36'>
       <div className='mx-auto max-w-[1200px] px-6'>
         {/* Header */}
-        <div className='home-reveal-up mb-16 flex flex-col items-center text-center' style={{ animationDelay: '0ms' }}>
-          <span className='mb-4 inline-flex items-center gap-1.5 rounded-full border border-border bg-background/60 px-3 py-1 text-[11px] font-medium tracking-wide text-muted-foreground'>
-            {t('home.pricing.eyebrow')}
-          </span>
-          <h2 className='max-w-2xl text-[clamp(2rem,4vw,3rem)] leading-[1.15] font-semibold tracking-tight text-foreground'>
-            {t('home.pricing.title')}
-          </h2>
-          <p className='mt-5 max-w-xl text-[16px] leading-7 text-muted-foreground'>
-            {t('home.pricing.subtitle')}
-          </p>
+        <div
+          className='home-reveal-up mb-14 flex flex-col gap-4 md:mb-16 md:flex-row md:items-end md:justify-between'
+          style={{ animationDelay: '0ms' }}
+        >
+          <div className='max-w-xl'>
+            <span className='mb-4 inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 py-1 text-[11px] font-medium tracking-wide text-muted-foreground'>
+              <span className='size-1 rounded-full bg-foreground/30' />
+              {t('home.pricing.eyebrow')}
+            </span>
+            <h2 className='text-[clamp(2rem,4vw,3rem)] leading-[1.15] font-semibold tracking-tight text-foreground'>
+              {t('home.pricing.title')}
+            </h2>
+            <p className='mt-4 text-[15px] leading-7 text-muted-foreground'>
+              {t('home.pricing.subtitle')}
+            </p>
+          </div>
+          <div className='hidden shrink-0 items-center gap-2 text-[12px] text-muted-foreground md:flex'>
+            <span className='relative flex size-1.5'>
+              <span className='home-pulse-dot absolute inline-flex size-full rounded-full bg-emerald-500/60' />
+              <span className='relative inline-flex size-1.5 rounded-full bg-emerald-500' />
+            </span>
+            实时同步上游价格
+          </div>
         </div>
 
         {/* Table */}
-        <div className='home-reveal-up overflow-hidden rounded-2xl border border-border bg-background' style={{ animationDelay: '100ms' }}>
+        <div
+          className='home-reveal-up overflow-hidden rounded-xl border border-border/80 bg-background shadow-sm'
+          style={{ animationDelay: '100ms' }}
+        >
           <div className='overflow-x-auto'>
             <table className='w-full min-w-[640px] border-collapse'>
               <thead>
-                <tr className='border-b border-border bg-muted/30'>
+                <tr className='border-b border-border bg-muted/40'>
                   <th className='px-6 py-4 text-left text-[11px] font-semibold tracking-wider uppercase text-muted-foreground'>
                     {t('home.pricing.col.model')}
                   </th>
@@ -159,17 +175,19 @@ export function PricingTable(_props: PricingTableProps) {
                   </th>
                 </tr>
               </thead>
-              <tbody>
-                {rows.map((row, i) => (
-                  <tr
-                    key={row.model}
-                    className={`border-b border-border last:border-0 transition-colors hover:bg-muted/30 ${i % 2 === 1 ? 'bg-muted/10' : ''}`}
-                  >
-                    <td className='px-6 py-4 text-[14px] font-semibold text-foreground'>
-                      {row.model}
+              <tbody className='divide-y divide-border/70'>
+                {rows.map((row) => (
+                  <tr key={row.model} className='group transition-colors hover:bg-muted/30'>
+                    <td className='px-6 py-4'>
+                      <span className='inline-flex items-center gap-2 text-[14px] font-semibold text-foreground'>
+                        <span className='size-1.5 rounded-full bg-foreground/20 transition-colors group-hover:bg-foreground/60' />
+                        {row.model}
+                      </span>
                     </td>
-                    <td className='px-6 py-4 text-[13px] text-muted-foreground'>
-                      {row.modality}
+                    <td className='px-6 py-4'>
+                      <span className='inline-flex items-center rounded border border-border bg-muted/40 px-2 py-0.5 text-[11.5px] text-muted-foreground'>
+                        {row.modality}
+                      </span>
                     </td>
                     <td className='px-6 py-4 text-right'>
                       <span className='font-mono text-[14px] tabular-nums text-foreground'>

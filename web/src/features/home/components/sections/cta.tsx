@@ -17,31 +17,37 @@ export function CTA(props: CTAProps) {
   }
 
   return (
-    <section className='py-32 md:py-40'>
+    <section className='relative py-28 md:py-36'>
       <div className='mx-auto max-w-[1200px] px-6'>
-        <div className='home-reveal-up relative overflow-hidden rounded-3xl border border-border bg-gradient-to-b from-muted/50 to-background p-12 md:p-20' style={{ animationDelay: '0ms' }}>
+        <div
+          className='home-reveal-up relative overflow-hidden rounded-2xl bg-[#0a0a0b] px-8 py-20 text-center md:py-24'
+          style={{ animationDelay: '0ms' }}
+        >
           {/* Decorative */}
-          <div className="pointer-events-none absolute -top-24 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-foreground/[0.04] blur-3xl" />
-          <div className="pointer-events-none absolute -right-20 -bottom-20 h-48 w-48 rounded-full bg-foreground/[0.03] blur-3xl" />
+          <div className='pointer-events-none absolute inset-0 overflow-hidden'>
+            <div className='absolute top-[-30%] left-1/2 h-[420px] w-[840px] -translate-x-1/2 rounded-full bg-white/[0.06] blur-3xl' />
+            <div className='absolute right-[-10%] bottom-[-30%] h-[280px] w-[280px] rounded-full bg-white/[0.04] blur-3xl' />
+            <div className='absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_70%_60%_at_50%_0%,black,transparent)]' />
+          </div>
 
-          <div className='relative flex flex-col items-center text-center'>
-            <span className='mb-6 inline-flex items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 py-1 text-[11px] font-medium tracking-wide text-muted-foreground'>
-              <span className='size-1 rounded-full bg-emerald-500 home-pulse-dot' />
+          <div className='relative mx-auto flex max-w-2xl flex-col items-center text-center'>
+            <span className='mb-6 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-medium tracking-wide text-white/60'>
+              <span className='size-1 rounded-full bg-white/40' />
               Ready to start
             </span>
 
-            <h2 className='max-w-2xl text-[clamp(2.5rem,5vw,4rem)] leading-[1.05] font-semibold tracking-tight text-foreground'>
-              <span className="block">{t('home.hero.title')}</span>
-              <span className="home-shimmer-text block text-foreground/50">{t('home.hero.titleHighlight')}</span>
+            <h2 className='text-[clamp(2.25rem,4.5vw,3.5rem)] leading-[1.1] font-semibold tracking-tight text-white'>
+              <span className='block'>{t('home.hero.title')}</span>
+              <span className='block text-white/45'>{t('home.hero.titleHighlight')}</span>
             </h2>
 
-            <p className='mt-6 max-w-xl text-[16px] leading-7 text-muted-foreground'>
+            <p className='mt-6 max-w-xl text-[15.5px] leading-7 text-white/55'>
               {t('home.cta.subtitle')}
             </p>
 
             <div className='mt-10 flex flex-col items-center gap-5 sm:flex-row'>
               <Button
-                className='h-12 rounded-lg border-0 bg-foreground px-8 text-[14px] font-semibold text-background shadow-lg shadow-foreground/10 transition-all hover:scale-[1.02] hover:bg-foreground/90'
+                className='h-12 rounded-lg bg-white px-8 text-[14px] font-semibold text-black shadow-[0_1px_0_0_rgba(255,255,255,0.1)_inset] transition-all hover:bg-white/85'
                 render={<Link to='/sign-up' />}
               >
                 {t('Get Started')}
@@ -49,7 +55,7 @@ export function CTA(props: CTAProps) {
               </Button>
               <Link
                 to='/pricing'
-                className='inline-flex items-center gap-1.5 text-[14px] font-medium text-muted-foreground transition-colors hover:text-foreground'
+                className='inline-flex items-center gap-1.5 text-[14px] font-medium text-white/60 transition-colors hover:text-white'
               >
                 {t('home.hero.exploreModels')}
               </Link>

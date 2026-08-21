@@ -21,7 +21,8 @@ import * as katex from 'katex'
 
 import 'katex/dist/katex.min.css'
 import { Marked, Renderer, type MarkedExtension, type Token, type Tokens } from 'marked'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import { codeToHtml } from 'shiki'
 
 import { cn } from '@/lib/utils'
 
@@ -637,8 +638,28 @@ function headingText(tokens: Token[]): string {
     .trim()
 }
 
+const COPY_ICON =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>'
+
+const CODE_LANGUAGE_ALIASES: Record<string, string> = {
+  js: 'javascript',
+  jsx: 'javascript',
+  ts: 'typescript',
+  tsx: 'typescript',
+  shell: 'bash',
+  sh: 'bash',
+  yml: 'yaml',
+  md: 'markdown',
+  golang: 'go',
+  py: 'python',
+}
+
+function normalizeCodeLanguage(language?: string): string {
+  const lang = (language ?? '').trim().toLowerCase()
+  return CODE_LANGUAGE_ALIASES[lang] ?? (lang || 'text')
+}
+
 const markdownRenderer = new Renderer()
-const renderDefaultCode = markdownRenderer.code.bind(markdownRenderer)
 
 markdownRenderer.code = (token: Tokens.Code): string => {
   const language = token.lang?.toLowerCase()
@@ -655,7 +676,26 @@ markdownRenderer.code = (token: Tokens.Code): string => {
     return renderSequenceDiagram(token.text)
   }
 
-  return renderDefaultCode(token)
+  const lang = normalizeCodeLanguage(token.lang)
+  const escaped = escapeHtml(token.text)
+
+  return (
+    '<div class="doc-code" data-lang="' +
+    lang +
+    '">' +
+    '<div class="doc-code-head">' +
+    '<span class="doc-code-lang">' +
+    lang +
+    '</span>' +
+    '<button class="doc-code-copy" type="button" aria-label="复制代码">' +
+    COPY_ICON +
+    '</button>' +
+    '</div>' +
+    '<div class="doc-code-body"><pre><code>' +
+    escaped +
+    '</code></pre></div>' +
+    '</div>'
+  )
 }
 
 markdownRenderer.heading = function (token: Tokens.Heading): string {
@@ -777,57 +817,352 @@ function addExternalLinkAttributes(html: string): string {
   return template.innerHTML
 }
 
+/**
+ * 提取文档中的 ::endpoint / :::callout 结构化块，替换为占位元素，
+ * 避免 marked 把块内容当作普通 markdown 解析。渲染后再还原为 HTML。
+ */
+function extractDocBlocks(markdown: string): {
+  blocks: string[]
+  text: string
+} {
+  const blocks: string[] = []
+
+  const text = markdown.replace(
+    /^:::+(info|warning|tip|note|danger)(?:\s+([^\n]+))?\n([\s\S]*?)\n:::+(?:\n|$)|^:::endpoint\s+([A-Z]+)\s+(\S+)\s*$/gm,
+    (
+      _match,
+      kind: string,
+      title: string,
+      body: string,
+      method: string,
+      path: string
+    ) => {
+      const index = blocks.length
+      let html: string
+
+      if (kind) {
+        const kindLabel = title?.trim() || kind
+        const bodyHtml = markdownParser.parse(body.trim(), markdownOptions)
+        html =
+          '<div class="doc-callout doc-callout-' +
+          kind +
+          '">' +
+          '<div class="doc-callout-title">' +
+          escapeHtml(kindLabel) +
+          '</div>' +
+          '<div class="doc-callout-body">' +
+          bodyHtml +
+          '</div>' +
+          '</div>'
+      } else {
+        const lower = method.toLowerCase()
+        html =
+          '<div class="doc-endpoint">' +
+          '<span class="doc-endpoint-method doc-endpoint-method-' +
+          lower +
+          '">' +
+          escapeHtml(method) +
+          '</span>' +
+          '<code class="doc-endpoint-path">' +
+          escapeHtml(path) +
+          '</code>' +
+          '</div>'
+      }
+
+      blocks.push(html)
+      return '<div class="doc-ph" data-i="' + index + '"></div>'
+    }
+  )
+
+  return { blocks, text }
+}
+
+function restoreDocBlocks(html: string, blocks: string[]): string {
+  return html.replace(
+    /<div class="doc-ph" data-i="(\d+)"><\/div>/g,
+    (_match, index: string) => {
+      return blocks[Number(index)] ?? ''
+    }
+  )
+}
+
 function renderMarkdown(markdown: string, breaks = false): string {
   headingIdCounts.clear()
-  const parsedHtml = markdownParser.parse(markdown, {
+  const { blocks, text } = extractDocBlocks(markdown)
+  const parsedHtml = markdownParser.parse(text, {
     ...markdownOptions,
     breaks,
   })
-  const html = DOMPurify.sanitize(parsedHtml, sanitizeOptions)
+  const restored = restoreDocBlocks(parsedHtml, blocks)
+  const html = DOMPurify.sanitize(restored, sanitizeOptions)
 
   return addExternalLinkAttributes(html)
 }
 
+const docStyles = `
+.doc-code {
+  margin: 1rem 0;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: #282c34;
+}
+.doc-code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.3rem 0.6rem 0.3rem 0.85rem;
+  background: #21252b;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.doc-code-lang {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #9da5b4;
+  letter-spacing: 0.02em;
+}
+.doc-code-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #9da5b4;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.doc-code-copy:hover {
+  color: #e6e6e6;
+  background: rgba(255, 255, 255, 0.08);
+}
+.doc-code-copied {
+  color: #98c379 !important;
+}
+.doc-code-body {
+  overflow-x: auto;
+}
+.doc-code-body pre {
+  margin: 0 !important;
+  padding: 0.875rem 1rem !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+.doc-code-body pre code {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  font-size: 13px !important;
+  line-height: 1.65 !important;
+  font-family: var(--font-mono) !important;
+}
+.doc-code-body .shiki {
+  background: transparent !important;
+  color: #abb2bf !important;
+}
+.doc-code-body .line {
+  display: inline;
+}
+.doc-callout {
+  margin: 1rem 0;
+  padding: 0.7rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid;
+  font-size: 0.875rem;
+}
+.doc-callout-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.2rem;
+}
+.doc-callout-body {
+  line-height: 1.65;
+  color: var(--foreground);
+}
+.doc-callout-info {
+  background: color-mix(in oklch, var(--primary) 6%, var(--background));
+  border-color: color-mix(in oklch, var(--primary) 28%, transparent);
+}
+.doc-callout-info .doc-callout-title {
+  color: var(--primary);
+}
+.doc-callout-warning {
+  background: color-mix(in oklch, #f59e0b 8%, var(--background));
+  border-color: color-mix(in oklch, #f59e0b 35%, transparent);
+}
+.doc-callout-warning .doc-callout-title {
+  color: #d97706;
+}
+.doc-callout-tip {
+  background: color-mix(in oklch, #10b981 7%, var(--background));
+  border-color: color-mix(in oklch, #10b981 30%, transparent);
+}
+.doc-callout-tip .doc-callout-title {
+  color: #059669;
+}
+.doc-callout-danger {
+  background: color-mix(in oklch, #ef4444 6%, var(--background));
+  border-color: color-mix(in oklch, #ef4444 30%, transparent);
+}
+.doc-callout-danger .doc-callout-title {
+  color: #dc2626;
+}
+.doc-callout-note {
+  background: color-mix(in oklch, var(--muted) 45%, var(--background));
+  border-color: var(--border);
+}
+.doc-callout-note .doc-callout-title {
+  color: var(--muted-foreground);
+}
+.doc-endpoint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin: 1rem 0;
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: color-mix(in oklch, var(--muted) 35%, var(--background));
+  font-family: var(--font-mono);
+}
+.doc-endpoint-method {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  padding: 0.14rem 0.45rem;
+  border-radius: 4px;
+  color: #fff;
+}
+.doc-endpoint-method-get {
+  background: #10b981;
+}
+.doc-endpoint-method-post {
+  background: #3b82f6;
+}
+.doc-endpoint-method-put {
+  background: #f59e0b;
+}
+.doc-endpoint-method-delete {
+  background: #ef4444;
+}
+.doc-endpoint-method-patch {
+  background: #8b5cf6;
+}
+.doc-endpoint-path {
+  font-size: 12.5px;
+  color: var(--foreground);
+  background: transparent !important;
+  padding: 0 !important;
+}
+`
+
 export function Markdown(props: MarkdownProps) {
-  const html = useMemo(
-    () => renderMarkdown(props.children, props.breaks),
-    [props.breaks, props.children]
-  )
+  const { breaks = false, children, className } = props
+  const html = useMemo(() => renderMarkdown(children, breaks), [breaks, children])
+  const hostRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const root = hostRef.current
+
+    if (!root) {
+      return
+    }
+
+    // 用 shiki 异步高亮代码块
+    root
+      .querySelectorAll<HTMLElement>('.doc-code code')
+      .forEach((codeEl) => {
+        const block = codeEl.closest<HTMLElement>('.doc-code')
+        const lang = block?.getAttribute('data-lang') ?? 'text'
+        const raw = codeEl.textContent ?? ''
+        const body = codeEl.closest<HTMLElement>('.doc-code-body')
+
+        if (!body || !raw.trim()) {
+          return
+        }
+
+        void codeToHtml(raw, { lang, theme: 'one-dark-pro' })
+          .then((highlighted) => {
+            body.innerHTML = highlighted
+          })
+          .catch(() => {})
+      })
+
+    // 复制按钮（事件委托）
+    const handleClick = (event: Event) => {
+      const target = event.target as HTMLElement
+      const button = target.closest<HTMLElement>('.doc-code-copy')
+
+      if (!button) {
+        return
+      }
+
+      const block = button.closest<HTMLElement>('.doc-code')
+      const codeEl = block?.querySelector('code')
+      const text = codeEl?.textContent ?? ''
+
+      if (!navigator.clipboard) {
+        return
+      }
+
+      void navigator.clipboard.writeText(text).then(() => {
+        button.classList.add('doc-code-copied')
+        button.setAttribute('aria-label', '已复制')
+        window.setTimeout(() => {
+          button.classList.remove('doc-code-copied')
+          button.setAttribute('aria-label', '复制代码')
+        }, 1600)
+      })
+    }
+
+    root.addEventListener('click', handleClick)
+
+    return () => root.removeEventListener('click', handleClick)
+  }, [html])
 
   return (
-    <div
-      className={cn(
-        'prose prose-sm dark:prose-invert max-w-none',
-        '[&_h1]:mt-6 [&_h1]:mb-3 [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:scroll-mt-24',
-        '[&_h2]:mt-5 [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:scroll-mt-24',
-        '[&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:scroll-mt-24',
-        '[&_h4]:mt-4 [&_h4]:mb-2 [&_h4]:font-semibold',
-        '[&_p]:my-2 [&_p]:leading-relaxed [&_strong]:font-semibold [&_em]:italic',
-        '[&_a]:text-primary [&_a]:underline hover:[&_a]:text-primary/80',
-        '[&_ol]:my-2 [&_ul]:my-2 [&_ol]:list-decimal [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5 [&_li]:my-1 [&_li]:pl-1',
-        '[&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-primary [&_blockquote]:bg-muted/50 [&_blockquote]:py-1 [&_blockquote]:pl-4',
-        '[&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono',
-        '[&_pre]:my-3 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:border [&_pre]:bg-muted [&_pre]:p-3 [&_table]:my-4 [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto',
-        '[&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-sm',
-        '[&_thead]:bg-muted [&_th]:border [&_td]:border [&_th]:px-3 [&_td]:px-3 [&_th]:py-2 [&_td]:py-2 [&_th]:text-left',
-        '[&_hr]:my-6 [&_img]:my-4 [&_img]:max-w-full [&_img]:rounded-lg',
-        '[&_.katex-display]:my-4 [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden',
-        '[&_.markdown-page-break]:my-6 [&_.markdown-page-break]:border-dashed',
-        '[&_.markdown-diagram]:my-4 [&_.markdown-diagram]:overflow-x-auto [&_.markdown-diagram]:rounded-md [&_.markdown-diagram]:border [&_.markdown-diagram]:bg-background [&_.markdown-diagram]:p-4',
-        '[&_.markdown-diagram_svg]:mx-auto [&_.markdown-diagram_svg]:max-w-full',
-        '[&_.markdown-diagram-node]:fill-[color-mix(in_oklch,var(--primary)_8%,var(--background))] [&_.markdown-diagram-node]:stroke-primary [&_.markdown-diagram-node]:stroke-[1.5]',
-        '[&_.markdown-diagram-text]:fill-foreground [&_.markdown-diagram-text]:text-sm [&_.markdown-diagram-text]:font-medium',
-        '[&_.markdown-diagram-edge]:stroke-muted-foreground [&_.markdown-diagram-edge]:stroke-[1.5] [&_.markdown-diagram-edge]:fill-none',
-        '[&_.markdown-diagram-arrow]:fill-muted-foreground',
-        '[&_.markdown-diagram-edge-label]:fill-muted-foreground [&_.markdown-diagram-edge-label]:text-xs',
-        '[&_.markdown-sequence-lifeline]:stroke-primary [&_.markdown-sequence-lifeline]:stroke-[1.5]',
-        '[&_.markdown-sequence-note]:fill-warning/20 [&_.markdown-sequence-note]:stroke-warning',
-        '[&_.markdown-sequence-note-text]:fill-foreground [&_.markdown-sequence-note-text]:text-xs',
-        '[&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
-        '[overflow-wrap:anywhere]',
-        props.className
-      )}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <>
+      <style>{docStyles}</style>
+      <div
+        ref={hostRef}
+        className={cn(
+          'prose prose-sm dark:prose-invert max-w-none',
+          '[&_h1]:mt-6 [&_h1]:mb-3 [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:scroll-mt-24',
+          '[&_h2]:mt-5 [&_h2]:mb-3 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:scroll-mt-24',
+          '[&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:scroll-mt-24',
+          '[&_h4]:mt-4 [&_h4]:mb-2 [&_h4]:font-semibold',
+          '[&_p]:my-2 [&_p]:leading-relaxed [&_strong]:font-semibold [&_em]:italic',
+          '[&_a]:text-primary [&_a]:underline hover:[&_a]:text-primary/80',
+          '[&_ol]:my-2 [&_ul]:my-2 [&_ol]:list-decimal [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5 [&_li]:my-1 [&_li]:pl-1',
+          '[&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-primary [&_blockquote]:bg-muted/50 [&_blockquote]:py-1 [&_blockquote]:pl-4',
+          '[&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.9em]',
+          '[&_table]:my-4 [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_table]:border-collapse',
+          '[&_thead]:bg-muted/60 [&_th]:border [&_td]:border [&_th]:px-3.5 [&_td]:px-3.5 [&_th]:py-2.5 [&_td]:py-2.5 [&_th]:text-left [&_th]:text-xs [&_th]:font-semibold [&_td]:text-sm [&_td]:leading-relaxed',
+          '[&_tbody_tr]:transition-colors hover:[&_tbody_tr]:bg-muted/30',
+          '[&_hr]:my-6 [&_img]:my-4 [&_img]:max-w-full [&_img]:rounded-lg',
+          '[&_.katex-display]:my-4 [&_.katex-display]:overflow-x-auto [&_.katex-display]:overflow-y-hidden',
+          '[&_.markdown-page-break]:my-6 [&_.markdown-page-break]:border-dashed',
+          '[&_.markdown-diagram]:my-4 [&_.markdown-diagram]:overflow-x-auto [&_.markdown-diagram]:rounded-md [&_.markdown-diagram]:border [&_.markdown-diagram]:bg-background [&_.markdown-diagram]:p-4',
+          '[&_.markdown-diagram_svg]:mx-auto [&_.markdown-diagram_svg]:max-w-full',
+          '[&_.markdown-diagram-node]:fill-[color-mix(in_oklch,var(--primary)_8%,var(--background))] [&_.markdown-diagram-node]:stroke-primary [&_.markdown-diagram-node]:stroke-[1.5]',
+          '[&_.markdown-diagram-text]:fill-foreground [&_.markdown-diagram-text]:text-sm [&_.markdown-diagram-text]:font-medium',
+          '[&_.markdown-diagram-edge]:stroke-muted-foreground [&_.markdown-diagram-edge]:stroke-[1.5] [&_.markdown-diagram-edge]:fill-none',
+          '[&_.markdown-diagram-arrow]:fill-muted-foreground',
+          '[&_.markdown-diagram-edge-label]:fill-muted-foreground [&_.markdown-diagram-edge-label]:text-xs',
+          '[&_.markdown-sequence-lifeline]:stroke-primary [&_.markdown-sequence-lifeline]:stroke-[1.5]',
+          '[&_.markdown-sequence-note]:fill-warning/20 [&_.markdown-sequence-note]:stroke-warning',
+          '[&_.markdown-sequence-note-text]:fill-foreground [&_.markdown-sequence-note-text]:text-xs',
+          '[&>*:first-child]:mt-0 [&>*:last-child]:mb-0',
+          '[overflow-wrap:anywhere]',
+          className
+        )}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </>
   )
 }

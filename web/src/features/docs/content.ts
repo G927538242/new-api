@@ -1208,12 +1208,14 @@ Responses API 同样支持 \`stream: true\`，格式与 Chat 类似，也是 SSE
     category: 'API 接口',
     content: `# 对话补全
 
-> **POST** \`/v1/chat/completions\`
+:::endpoint POST /v1/chat/completions
 
 创建对话补全。支持流式（SSE）和非流式两种模式。
 
-- 非流式：设置 \`stream: false\`（默认），返回完整响应
-- 流式：设置 \`stream: true\`，以 SSE 逐块返回 ChatCompletionChunk
+:::info 模式说明
+- **非流式**：设置 \`stream: false\`（默认），返回完整响应
+- **流式**：设置 \`stream: true\`，以 SSE 逐块返回 ChatCompletionChunk
+:::
 
 ## 请求参数
 
@@ -1325,7 +1327,7 @@ curl --location '{{BASE_URL}}/v1/chat/completions' \\
     category: 'API 接口',
     content: `# 列出可用模型
 
-> **GET** \`/v1/models\`
+:::endpoint GET /v1/models
 
 返回当前可用的模型列表
 
@@ -1377,7 +1379,7 @@ curl --location '{{BASE_URL}}/v1/models' \\
     category: 'API 接口',
     content: `# Responses API
 
-> **POST** \`/v1/responses\`
+:::endpoint POST /v1/responses
 
 OpenAI Responses API。支持文本输入和消息数组，返回结构化 Response 对象，包含 output 消息和 usage。
 
@@ -1455,7 +1457,7 @@ curl --location '{{BASE_URL}}/v1/responses' \\
     category: 'API 接口',
     content: `# 文本向量化
 
-> **POST** \`/v1/embeddings\`
+:::endpoint POST /v1/embeddings
 
 将文本转换为向量表示，支持批量输入
 
@@ -1519,7 +1521,7 @@ curl --location '{{BASE_URL}}/v1/embeddings' \\
     category: 'API 接口',
     content: `# 生成图像
 
-> **POST** \`/v1/images/generations\`
+:::endpoint POST /v1/images/generations
 
 根据文本提示生成图像。
 
@@ -1601,7 +1603,7 @@ curl --location '{{BASE_URL}}/v1/images/generations' \\
     category: 'API 接口',
     content: `# 文本转语音（TTS）
 
-> **POST** \`/v1/audio/speech\`
+:::endpoint POST /v1/audio/speech
 
 将文本合成为语音，返回音频流
 
@@ -1653,7 +1655,7 @@ curl --location '{{BASE_URL}}/v1/audio/speech' \\
     category: 'API 接口',
     content: `# 语音转文本（STT）
 
-> **POST** \`/v1/audio/transcriptions\`
+:::endpoint POST /v1/audio/transcriptions
 
 将音频文件转录为文本
 
@@ -1696,7 +1698,7 @@ curl --location '{{BASE_URL}}/v1/audio/transcriptions' \\
     category: 'API 接口',
     content: `# 语音翻译
 
-> **POST** \`/v1/audio/translations\`
+:::endpoint POST /v1/audio/translations
 
 将音频文件翻译为英文文本
 
@@ -1737,7 +1739,7 @@ curl --location '{{BASE_URL}}/v1/audio/translations' \\
     category: 'API 接口',
     content: `# 生成视频
 
-> **POST** \`/v1/video/generations\`
+:::endpoint POST /v1/video/generations
 
 根据文本提示生成视频，支持纯文生视频和图生视频两种模式，兼容豆包 Seedance (Sendance) 视频生成协议。
 
@@ -1863,7 +1865,7 @@ curl --location '{{BASE_URL}}/v1/video/generations' \\
 
 ## 查询任务状态
 
-> **GET** \`/v1/video/generations/{task_id}\`
+:::endpoint GET /v1/video/generations/{task_id}
 
 提交任务后，通过轮询该接口获取生成进度与结果。
 
@@ -1918,7 +1920,7 @@ curl --location '{{BASE_URL}}/v1/video/generations' \\
 
 ## 上传素材
 
-> **POST** \`/api/asset\`
+:::endpoint POST /api/asset
 
 使用 \`multipart/form-data\` 上传素材文件。
 
@@ -1981,7 +1983,7 @@ curl --location '{{BASE_URL}}/api/asset' \\
 
 ## 获取素材列表
 
-> **GET** \`/api/asset\`
+:::endpoint GET /api/asset
 
 分页获取素材列表，支持按类型和模型筛选。
 
@@ -2027,7 +2029,7 @@ curl --location '{{BASE_URL}}/api/asset?type=video&model=sendance-2.0&page=0&pag
 
 ## 搜索素材
 
-> **GET** \`/api/asset/search\`
+:::endpoint GET /api/asset/search
 
 按关键词搜索素材，参数与获取素材列表相同，额外支持：
 
@@ -2042,7 +2044,7 @@ curl --location '{{BASE_URL}}/api/asset/search?keyword=开场' \\
 
 ## 获取素材详情
 
-> **GET** \`/api/asset/{id}\`
+:::endpoint GET /api/asset/{id}
 
 \`\`\`bash
 curl --location '{{BASE_URL}}/api/asset/1' \\
@@ -2051,7 +2053,7 @@ curl --location '{{BASE_URL}}/api/asset/1' \\
 
 ## 删除素材
 
-> **DELETE** \`/api/asset/{id}\`
+:::endpoint DELETE /api/asset/{id}
 
 仅素材所有者或管理员可删除。
 
@@ -2119,7 +2121,7 @@ curl --location --request DELETE '{{BASE_URL}}/api/asset/1' \\
     category: 'API 接口',
     content: `# 内容审核
 
-> **POST** \`/v1/moderations\`
+:::endpoint POST /v1/moderations
 
 检测文本或图文内容是否违反安全策略
 
@@ -2185,7 +2187,7 @@ curl --location '{{BASE_URL}}/v1/moderations' \\
     category: 'API 接口',
     content: `# 重排序
 
-> **POST** \`/v1/rerank\`
+:::endpoint POST /v1/rerank
 
 根据查询文本对文档列表进行相关性重排序
 

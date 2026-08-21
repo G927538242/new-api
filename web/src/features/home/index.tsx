@@ -124,16 +124,18 @@ export function Home() {
 
   return (
     <PublicLayout showMainContainer={false}>
-      <Hero isAuthenticated={isAuthenticated} />
-      <ModelMarquee />
-      <Features />
-      <Compatibility />
-      <HowItWorks />
-      <CodeSection />
-      <PricingTable />
-      <Testimonials />
-      <FAQ />
-      <CTA isAuthenticated={isAuthenticated} />
+      <div className='home-bg'>
+        <Hero isAuthenticated={isAuthenticated} />
+        <ModelMarquee />
+        <Features />
+        <Compatibility />
+        <HowItWorks />
+        <CodeSection />
+        <PricingTable />
+        <Testimonials />
+        <FAQ />
+        <CTA isAuthenticated={isAuthenticated} />
+      </div>
     </PublicLayout>
   )
 }
