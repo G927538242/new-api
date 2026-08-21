@@ -106,7 +106,7 @@ export const AnthropicIcon: FC<ProviderIconProps> = ({ className, size }) => (
 
 export const DeepSeekIcon: FC<ProviderIconProps> = ({ className, size }) => (
   <ImgIcon
-    src='/assets/tokenhub/icons/deepseek.png'
+    src='/assets/tokenhub/icons/deepseek.svg'
     alt='DeepSeek'
     size={size ?? DEFAULT_SIZE}
     className={className}
@@ -135,6 +135,26 @@ export const MinimaxIcon: FC<ProviderIconProps> = ({ className, size }) => (
   <ImgIcon
     src='/assets/tokenhub/icons/minimax.jpeg'
     alt='Minimax'
+    size={size ?? DEFAULT_SIZE}
+    className={className}
+  />
+)
+
+// Alibaba / Tongyi
+export const AlibabaIcon: FC<ProviderIconProps> = ({ className, size }) => (
+  <ImgIcon
+    src='/assets/tokenhub/icons/alibaba.svg'
+    alt='Alibaba'
+    size={size ?? DEFAULT_SIZE}
+    className={className}
+  />
+)
+
+// Moonshot AI (Kimi)
+export const MoonshotIcon: FC<ProviderIconProps> = ({ className, size }) => (
+  <ImgIcon
+    src='/assets/tokenhub/icons/moonshot.png'
+    alt='Moonshot'
     size={size ?? DEFAULT_SIZE}
     className={className}
   />
@@ -173,6 +193,16 @@ export const WanIcon: FC<ProviderIconProps> = ({ className, size }) => (
 
 export const RunwayIcon: FC<ProviderIconProps> = ({ className, size }) => (
   <SvgIcon path={RunwaySvgPath} size={size ?? DEFAULT_SIZE} className={className} />
+)
+
+// Zhipu AI (GLM)
+export const ZhipuIcon: FC<ProviderIconProps> = ({ className, size }) => (
+  <ImgIcon
+    src='/assets/tokenhub/icons/zhipu.svg'
+    alt='Zhipu'
+    size={size ?? DEFAULT_SIZE}
+    className={className}
+  />
 )
 
 export const providerIconMap: Record<string, FC<ProviderIconProps>> = {
